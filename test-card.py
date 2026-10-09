@@ -82,9 +82,27 @@ def read_apps(card_yml: Path) -> list[dict]:
     return apps
 
 
-def file_places(apps: list[dict], compose: Path) -> list[str]:
-    """The places a Compose file runs, from the <APP>_PORT variable each app's file reads."""
-    text, owners, found = compose.read_text(), {}, []
+def read_places(card_yml: Path) -> dict[str, dict]:
+    """The places: section of card.yml, enough of it for runs:."""
+    places, current = {}, None
+    m = re.search(r"\nplaces:\s*\n((?:[ \t]+.*\n?|\s*\n)+)", card_yml.read_text())
+    for line in (m.group(1) if m else "").splitlines():
+        pm = re.match(r"^  ([a-z][a-z0-9-]*):\s*$", line)
+        if pm:
+            current = places.setdefault(pm.group(1), {})
+            continue
+        fm = re.match(r"^    (\w+):\s*(.+?)\s*$", line)
+        if fm and current is not None:
+            current[fm.group(1)] = [x.strip() for x in fm.group(2).strip("[]").split(",")] \
+                if fm.group(1) in ("arch", "runs") else fm.group(2)
+    return places
+
+
+def file_places(apps: list[dict], compose: Path, places: dict | None = None) -> list[str]:
+    """The places a Compose file runs: those that list it in runs:, then those whose apps'
+    <APP>_PORT variable it reads."""
+    found = [p for p, spec in (places or {}).items() if compose.name in spec.get("runs", [])]
+    text, owners = compose.read_text(), {}
     for app in apps:
         owner = owners.setdefault((app["port"], app["place"], app["from"]), app["name"])
         if "${" + owner.upper().replace("-", "_") + "_PORT" in text and app["place"] not in found:
@@ -231,7 +249,8 @@ def suggest(memory: float, disk: float, archs: set[str], gpu: str) -> dict:
 def places_yaml(places: dict[str, dict]) -> str:
     lines = ["places:"]
     for name, p in places.items():
-        lines += [f"  {name}:", f"    memory: {p['memory']}", f"    disk: {p['disk']}",
+        lines += [f"  {name}:"] + ([f"    runs: [{', '.join(p['runs'])}]"] if p.get("runs") else []) + [
+                  f"    memory: {p['memory']}", f"    disk: {p['disk']}",
                   f"    arch: [{', '.join(p['arch'])}]", f"    gpu: {p['gpu']}"]
     return "\n".join(lines) + "\n"
 
@@ -256,6 +275,11 @@ def main(argv: list[str]) -> int:
                     help="shell to run between Start and Publish, with card.env exported and $COMPOSE set "
                          "to the test's compose command for the first Compose file")
     ap.add_argument("--verify-wait", type=int, default=300, help="seconds to wait for each hostname")
+    ap.add_argument("--check", action="append", default=[], metavar="NAME=COMMAND",
+                    help="a check only this card knows how to make, run after Verify and after the places with "
+                         "no app have started; card.env is exported, and HOSTNAME_<APP> holds each published "
+                         "hostname; repeat for more")
+    ap.add_argument("--check-wait", type=int, default=600, help="seconds to keep retrying each --check")
     ap.add_argument("--by", choices=["agent", "person"], default="person")
     ap.add_argument("--gpu", choices=["none", "optional", "required"], default="none",
                     help="the gpu value in the suggested places:")
@@ -277,10 +301,18 @@ def main(argv: list[str]) -> int:
     shutil.copytree(src, work / src.name, ignore=shutil.ignore_patterns("test.yml", "images"))
     card = work / src.name
     env_file = card / "card.env"
-    set_env(env_file, "DEVICE", args.device)
+    for key in re.findall(r"^((?:[A-Z0-9_]+_)?DEVICE)=", env_file.read_text(), re.M):
+        set_env(env_file, key, args.device)
     set_env(env_file, "ORG_LABEL", label)
     apps = read_apps(card / "card.yml")
     composes = sorted(card.glob("*compose*.yml"))
+    places = read_places(card / "card.yml")
+    app_places = {a["place"] for a in apps}
+    # A place no app uses runs services that connect out, often to an app this card
+    # publishes, so its Compose files start after Publish.
+    later = [f for f in composes if f.name in {n for p, s in places.items() if p not in app_places
+                                               for n in s.get("runs", [])}]
+    first = [f for f in composes if f not in later]
     project = f"cardtest-{src.name}"
     projects = {f: f"{project}-{f.stem}" for f in composes}
     dc = lambda f, rest: f"docker compose -p {projects[f]} --env-file {env_file} -f {f} {rest}"
@@ -307,14 +339,13 @@ def main(argv: list[str]) -> int:
         sampler.thread.start()
         t = time.time()
         steps["start"], started_compose = "fail", True
-        for f in composes:
+        for f in first:
             sh(dc(f, "up -d --wait --wait-timeout 1200"), timeout=2400)
-        steps["start"] = "pass"
-        print(f"start: pass ({int(time.time() - t)}s)")
+        print(f"start: {', '.join(f.name for f in first)} up ({int(time.time() - t)}s)")
 
         if args.prepare:
             prepare = sh(f"cd {work} && set -a && . {env_file} && set +a && "
-                         f"COMPOSE='docker compose -p {projects[composes[0]]} --env-file {env_file} -f {composes[0]}' "
+                         f"COMPOSE='docker compose -p {projects[first[0]]} --env-file {env_file} -f {first[0]}' "
                          f"&& {args.prepare}", check=False, timeout=900)
             print("prepare:", "ok" if prepare.returncode == 0 else "FAILED",
                   hide((prepare.stdout + prepare.stderr).strip()[-300:]))
@@ -350,6 +381,29 @@ def main(argv: list[str]) -> int:
                 time.sleep(10)
             steps["verify"][app["name"]] = result
             print(f"verify {app['name']}: {result} ({hide(detail)})")
+
+        t = time.time()
+        for f in later:
+            sh(dc(f, "up -d --wait --wait-timeout 1200"), timeout=2400)
+        if later:
+            print(f"start: {', '.join(f.name for f in later)} up after Publish ({int(time.time() - t)}s)")
+        steps["start"] = "pass"
+
+        hostnames = " ".join(f"HOSTNAME_{a['name'].upper().replace('-', '_')}={listing[n]['hostnames'][0]}"
+                             for a, n in published)
+        for check in args.check:
+            name, _, command = check.partition("=")
+            steps.setdefault("checks", {})[name] = "fail"
+            deadline, out = time.time() + args.check_wait, ""
+            while time.time() < deadline:
+                r = sh(f"cd {work} && set -a && . {env_file} && set +a && export {hostnames} && {command}",
+                       check=False, timeout=600)
+                out = (r.stdout + r.stderr).strip()[-200:]
+                if r.returncode == 0:
+                    steps["checks"][name] = "pass"
+                    break
+                time.sleep(15)
+            print(f"check {name}: {steps['checks'][name]} ({hide(out)})")
     except Exception as exc:
         print(hide(f"stopped: {exc}"))
     finally:
@@ -371,7 +425,7 @@ def main(argv: list[str]) -> int:
     images, per_place = [], {}
     for f in composes:
         config = json.loads(sh(dc(f, "config --format json"), check=False).stdout or "{}")
-        place = (file_places(apps, f) or [apps[0]["place"]])[0]
+        place = (file_places(apps, f, places) or [apps[0]["place"]])[0]
         entry = per_place.setdefault(place, {"memory": 0.0, "images": 0.0, "data": 0.0, "archs": None})
         entry["memory"] += sampler.peak.get(projects[f], 0.0)
         entry["data"] += data.get(f, 0.0)
@@ -390,6 +444,7 @@ def main(argv: list[str]) -> int:
         steps["verify"].setdefault(app["name"], "skip")
     core = [steps[k] for k in ("check-env", "start", "publish", "teardown")]
     result = ("pass" if all(c == "pass" for c in core) and "fail" not in steps["verify"].values()
+              and "fail" not in steps.get("checks", {}).values()
               and "pass" in steps["verify"].values() else "fail")
 
     docker_version = sh("docker version --format '{{.Server.Version}}'", check=False).stdout.strip()
@@ -401,6 +456,7 @@ def main(argv: list[str]) -> int:
         "images:", *[f"  - {i}" for i in sorted(set(images))],
         "steps:", f"  check-env: {steps['check-env']}", f"  start: {steps['start']}",
         f"  publish: {steps['publish']}", "  verify:", *[f"    {k}: {v}" for k, v in steps["verify"].items()],
+        *(["  checks:", *[f"    {k}: {v}" for k, v in steps["checks"].items()]] if steps.get("checks") else []),
         f"  teardown: {steps['teardown']}",
     ]
     if started_compose:
@@ -420,7 +476,8 @@ def main(argv: list[str]) -> int:
         print(f"\nresult: {result}. Wrote {target}.")
 
     if started_compose:
-        suggestion = {p: suggest(m["memory"], m["images"] + m["data"], m["archs"] or set(), args.gpu)
+        suggestion = {p: {**({"runs": places[p]["runs"]} if places.get(p, {}).get("runs") else {}),
+                          **suggest(m["memory"], m["images"] + m["data"], m["archs"] or set(), args.gpu)}
                       for p, m in per_place.items()}
         print("\nsuggested " + places_yaml(suggestion), end="")
         if args.write_places and result == "pass":

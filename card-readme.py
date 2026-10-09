@@ -59,16 +59,46 @@ def main(argv: list[str]) -> int:
     name = d.resolve().name
     card = yaml.safe_load((d / "card.yml").read_text())
     spec = yaml.safe_load(args.spec.read_text())
-    git_config = Path("/repo/.git/config")
-    repo = args.repo or ("starters" if git_config.is_file() and "starters" in git_config.read_text() else "cards")
+    try:
+        detected = "starters" if "starters" in Path("/repo/.git/config").read_text() else "cards"
+    except OSError:
+        detected = "cards"
+    repo = args.repo or detected
     apps = card["applications"]
     composes = sorted(p.name for p in d.glob("*compose*.yml"))
     env = f"--env-file {name}/card.env"
     owners: dict[tuple, str] = {}
     for a in apps:
         owners.setdefault((a["port"], a["place"], a["from"]), a["name"])
-    projects = sorted({re.search(r"^name:\s*(\S+)", (d / f).read_text(), re.M).group(1) for f in composes})
-    run = lambda verb: "\n".join(f"docker compose {env} -f {name}/{f} {verb}" for f in composes)
+    project_of = {f: re.search(r"^name:\s*(\S+)", (d / f).read_text(), re.M).group(1) for f in composes}
+    declared = card.get("places") or {}
+    app_places = list(dict.fromkeys(a["place"] for a in apps))
+    helper_places = [pl for pl, s in declared.items() if pl not in app_places and s.get("runs")]
+    all_places = app_places + helper_places
+
+    def place_of(f: str) -> str:
+        for pl, s in declared.items():
+            if f in s.get("runs", []):
+                return pl
+        text = (d / f).read_text()
+        for a in apps:
+            if "${" + env_name(owners[(a["port"], a["place"], a["from"])]) + "_PORT" in text:
+                return a["place"]
+        return app_places[0]
+
+    files_of = {pl: [f for f in composes if place_of(f) == pl] for pl in all_places}
+    multi = len(all_places) > 1
+    run_files = lambda files, verb: "\n".join(f"docker compose {env} -f {name}/{f} {verb}" for f in files)
+    run = lambda verb: run_files(composes, verb)
+    on = lambda pl: f"On the machine for place `{pl}`:\n\n" if multi else ""
+    per_place = lambda places, verb: "\n\n".join(
+        f"{on(pl)}{FENCE}bash\n{run_files(files_of[pl], verb)}\n{FENCE}" for pl in places if files_of[pl])
+    backup_of = lambda files: "\n".join(
+        f"for volume in $(docker volume ls -q --filter label=com.docker.compose.project={pr}); do\n"
+        f"  docker run --rm -v \"$volume:/data:ro\" -v \"$PWD:/backup\" alpine tar -czf \"/backup/$volume.tgz\" -C /data .\n"
+        f"done" for pr in sorted({project_of[f] for f in files}))
+    var_of = lambda pl: "DEVICE" if not multi else env_name(pl) + "_DEVICE"
+    id_of = lambda pl: "device_id" if not multi else env_name(pl).lower() + "_id"
 
     creates = []
     for a in apps:
@@ -76,7 +106,7 @@ def main(argv: list[str]) -> int:
         creates.append(
             f"edgible app create existing \\\n  --non-interactive \\\n  --name {a['name']} \\\n"
             f"  --port \"${var}\" \\\n  --protocol {a['protocol']} \\\n"
-            f"  --auth-modes {','.join(a['authModes'])} \\\n  --device-id \"$device_id\"")
+            f"  --auth-modes {','.join(a['authModes'])} \\\n  --device-id \"${id_of(a['place'])}\"")
 
     verify = []
     for a in apps:
@@ -99,10 +129,30 @@ def main(argv: list[str]) -> int:
         verify.append(f"{head}\n\n{FENCE}bash\n{check}\n{FENCE}\n\n{note}")
 
     docs = spec["docs"]
-    backup = "\n".join(
-        f"for volume in $(docker volume ls -q --filter label=com.docker.compose.project={p}); do\n"
-        f"  docker run --rm -v \"$volume:/data:ro\" -v \"$PWD:/backup\" alpine tar -czf \"/backup/$volume.tgz\" -C /data .\n"
-        f"done" for p in projects)
+    words = {5: "Five", 6: "Six", 7: "Seven", 8: "Eight"}
+    if multi:
+        lookup = ("device_id() {\n  edgible device list --json | jq -er --arg name \"$1\" '\n"
+                  "    map(select(.name == $name))\n    | if length == 1 then .[0].id\n"
+                  "      else error(\"need exactly one device named \" + $name + \" (\" + (map(.status + \" \" + .id) | join(\", \")) + \")\")\n"
+                  "      end\n  '\n}\n" + "\n".join(f"{id_of(pl)}=$(device_id \"${var_of(pl)}\")" for pl in app_places))
+    else:
+        lookup = ("device_id=$(edgible device list --json | jq -er --arg name \"$DEVICE\" '\n  map(select(.name == $name))\n"
+                  "  | if length == 1 then .[0].id\n    else error(\"need exactly one device named \" + $name + \" (\" + (map(.status + \" \" + .id) | join(\", \")) + \")\")\n"
+                  "    end\n')")
+    helper_steps = ""
+    for i, pl in enumerate(helper_places):
+        where = f"On the machine for place `{pl}`. " if multi else ""
+        note = ((spec.get("helpers") or {}).get(pl) or "").strip()
+        helper_steps += (f"\n### {6 + i}. Start the {pl}\n\n{where}Its services connect out to what Publish "
+                         f"published, so they start now.\n\n{FENCE}bash\n{run_files(files_of[pl], 'up -d --wait')}\n"
+                         f"{run_files(files_of[pl], 'ps')}\n{FENCE}\n\n{note}\n")
+    fetch_note = ("\n\nOn each machine that runs a place, fetch the card and set up `card.env` the same way: "
+                  "the places share its settings." if multi else "")
+    stop_order = helper_places + app_places
+    up_ps = lambda files: (f"{FENCE}bash\n{run_files(files, 'up -d --wait')}\n"
+                           f"{run_files(files, 'ps')}\n{FENCE}")
+    start_block = ("\n\n".join(on(pl) + up_ps(files_of[pl]) for pl in app_places if files_of[pl])
+                   if multi else up_ps(composes))
     out = f"""# {name}
 
 ## Why
@@ -119,7 +169,7 @@ The Compose file is [{composes[0]}]({composes[0]}), the settings [card.env](card
 
 ## How
 
-Five steps. Edit [card.env](card.env) before you start.
+{words[5 + len(helper_places)]} steps. Edit [card.env](card.env) before you start.
 
 ### 1. Fetch
 
@@ -127,7 +177,7 @@ Five steps. Edit [card.env](card.env) before you start.
 mkdir -p {name}
 curl -fsSL https://github.com/Edgible/{repo}/archive/refs/heads/main.tar.gz \\
   | tar -xz --strip-components=2 -C {name} {repo}-main/{name}
-{FENCE}
+{FENCE}{fetch_note}
 
 ### 2. Edit card.env
 
@@ -148,10 +198,7 @@ It fills each empty secret and moves a taken port, as lines to paste. Run it aga
 
 ### 4. Start
 
-{FENCE}bash
-{run('up -d --wait')}
-{run('ps')}
-{FENCE}
+{start_block}
 
 `--wait` returns when each service is running, and healthy when it has a healthcheck. {spec.get('start', '').strip()}
 
@@ -162,16 +209,11 @@ set -euo pipefail
 set -a
 . {name}/card.env
 set +a
-device_id=$(edgible device list --json | jq -er --arg name "$DEVICE" '
-  map(select(.name == $name))
-  | if length == 1 then .[0].id
-    else error("need exactly one device named " + $name + " (" + (map(.status + " " + .id) | join(", ")) + ")")
-    end
-')
+{lookup}
 {chr(10).join(creates)}
 edgible app list
 {FENCE}
-
+{helper_steps}
 ## Verify
 
 {(chr(10) * 2).join(verify)}
@@ -180,7 +222,7 @@ The rest of the setup is in the [{docs[0]} docs]({docs[1]}).
 
 ## Tear down
 
-Four steps, in this order. Step 1 runs wherever `edgible` is logged in. Steps 2 to 4 run on the machine that runs the containers. Steps 2 and 3 read `card.env`, so keep it until step 4.
+Four steps, in this order. Step 1 runs wherever `edgible` is logged in. Steps 2 to 4 run on {'the machine for each place' if multi else 'the machine that runs the containers'}. Steps 2 and 3 read `card.env`, so keep it until step 4.
 
 ### 1. Unpublish
 
@@ -190,19 +232,13 @@ Four steps, in this order. Step 1 runs wherever `edgible` is logged in. Steps 2 
 
 ### 2. Stop
 
-{FENCE}bash
-{run('down')}
-{FENCE}
+{per_place(stop_order, 'down') if multi else FENCE + 'bash' + chr(10) + run('down') + chr(10) + FENCE}
 
 ### 3. Delete the data
 
 Skip this step to keep the data. The loop copies each volume to a `.tgz` file in this directory first.
 
-{FENCE}bash
-{backup}
-{run('down --volumes')}
-{FENCE}
-
+{chr(10).join(f"{on(pl)}{FENCE}bash{chr(10)}{backup_of(files_of[pl])}{chr(10)}{run_files(files_of[pl], 'down --volumes')}{chr(10)}{FENCE}{chr(10)}" for pl in stop_order if files_of[pl]) if multi else FENCE + 'bash' + chr(10) + backup_of(composes) + chr(10) + run('down --volumes') + chr(10) + FENCE + chr(10)}
 ### 4. Remove the {'starter' if repo == 'starters' else 'card'}
 
 {FENCE}bash

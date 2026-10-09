@@ -384,18 +384,20 @@ def read_places(card_yml: Path) -> dict[str, dict]:
         if m:
             current = places.setdefault(m.group(1), {})
             continue
-        m = re.match(r"^    (memory|disk|arch|gpu):\s*(.+?)\s*$", line)
+        m = re.match(r"^    (memory|disk|arch|gpu|runs):\s*(.+?)\s*$", line)
         if m and current is not None:
             value = m.group(2)
-            current[m.group(1)] = [a.strip() for a in value.strip("[]").split(",")] if m.group(1) == "arch" else value
+            listed = m.group(1) in ("arch", "runs")
+            current[m.group(1)] = [a.strip() for a in value.strip("[]").split(",")] if listed else value
     return places
 
 
 def file_places(card_yml: Path, compose: Path, env: dict[str, str]) -> set[str]:
-    """The places a Compose file runs, from the <APP>_PORT variable each app's file reads."""
+    """The places a Compose file runs: those that list it in runs:, and those whose apps'
+    <APP>_PORT variable it reads."""
     text = compose.read_text()
     owners: dict[tuple, str] = {}
-    found = set()
+    found = {p for p, spec in read_places(card_yml).items() if compose.name in spec.get("runs", [])}
     for app in read_apps(card_yml):
         key = (app.get("port"), app.get("place"), app.get("from"))
         owner = owners.setdefault(key, app["name"])
@@ -481,6 +483,13 @@ def sizing(report: "Report", card_yml: Path, files: list[Path], env_file: Path, 
         report.ok(f"cpu: this machine is {arch}, and every image has a build for it")
 
 
+RISKY = [
+    (re.compile(r"/var/run/docker\.sock"), "mounts the Docker socket"),
+    (re.compile(r"^\s*privileged:\s*true", re.M), "runs privileged"),
+    (re.compile(r"^\s*network_mode:\s*[\"']?host", re.M), "uses the host's network"),
+]
+
+
 def notes(
     report: Report, files: list[Path], env_file: Path, env: dict[str, str], containers: list[dict]
 ) -> None:
@@ -499,6 +508,13 @@ def notes(
     ours = {config["name"] for _, config in resolved}
     running = [c for c in containers if c["State"] == "running" and c["Project"] not in ours]
     said = False
+    for compose in files:
+        text = compose.read_text()
+        for pattern, what in RISKY:
+            if pattern.search(text):
+                report.note(f"{compose.name} {what}, which gives that service full control of this machine. "
+                            "Run it only on a machine where that is acceptable.")
+                said = True
     for compose, config in resolved:
         health: list[str] = []
         for service, spec in config.get("services", {}).items():

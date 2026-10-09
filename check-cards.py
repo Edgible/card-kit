@@ -87,14 +87,40 @@ def convention_errors(card_dir: Path, card: dict) -> list[str]:
         if not any("${" + var in text for text in composes.values()):
             errors.append(f"app {app['name']}: no Compose file reads ${{{var}}}")
 
-    places = sorted({app["place"] for app in card["applications"]})
-    for place in card.get("places", {}):
-        if place not in places:
-            errors.append(f"places names {place}, which no app in card.yml uses")
+    app_places = {app["place"] for app in card["applications"]}
+    declared = card.get("places", {})
+    for place, spec in declared.items():
+        runs = spec.get("runs", [])
+        if place not in app_places and not runs:
+            errors.append(f"places names {place}, which no app uses; a place with no app says what it runs with runs:")
+        for name in runs:
+            if name not in composes:
+                errors.append(f"place {place} runs {name}, which is not a Compose file next to card.yml")
+    places = sorted(app_places | {p for p, spec in declared.items() if spec.get("runs")})
     wanted = {places[0]: "DEVICE"} if len(places) == 1 else {p: env_name(p) + "_DEVICE" for p in places}
     for place, var in wanted.items():
         if var not in env:
             errors.append(f"card.env has no {var}, the serving device for place {place}")
+    errors += risky_errors(card_dir, composes)
+    return errors
+
+
+RISKY = [
+    (re.compile(r"/var/run/docker\.sock"), "mounts the Docker socket", ("docker socket",)),
+    (re.compile(r"^\s*privileged:\s*true", re.M), "runs privileged", ("privileged",)),
+    (re.compile(r"^\s*network_mode:\s*[\"']?host", re.M), "uses the host's network", ("host network", "host's network")),
+]
+
+
+def risky_errors(card_dir: Path, composes: dict[str, str]) -> list[str]:
+    """A service with full control of its machine must be named in the README."""
+    readme = (card_dir / "README.md").read_text().lower() if (card_dir / "README.md").is_file() else ""
+    errors = []
+    for name, text in composes.items():
+        for pattern, what, words in RISKY:
+            if pattern.search(text) and not any(w in readme for w in words):
+                errors.append(f"{name} {what}, which gives it full control of its machine; "
+                              f"the README must say so (mention: {words[0]})")
     return errors
 
 
@@ -124,8 +150,10 @@ def test_errors(card_dir: Path, card: dict, validator: Draft202012Validator) -> 
         errors.append("test.yml: result is pass, but a step failed")
     if test["result"] == "fail" and "fail" not in outcomes:
         errors.append("test.yml: result is fail, but no step failed")
+    known = {app["place"] for app in card["applications"]} | {
+        p for p, spec in (card.get("places") or {}).items() if spec.get("runs")}
     for place in test.get("measured", {}):
-        if place not in {app["place"] for app in card["applications"]}:
+        if place not in known:
             errors.append(f"test.yml: measured names {place}, which no app in card.yml uses")
     match = HOSTNAME.search(text)
     if match:
