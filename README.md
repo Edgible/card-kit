@@ -51,6 +51,26 @@ Sizes are a number, a space, and `MB`, `GB`, or `TB`. Each field is optional, an
 
 The README's What section says the same numbers in words, so a reader who never opens `card.yml` sees them. A starter always has `places:`, from the sizes its test measured (see `measured:` under [Test results](#test-results)) plus a margin.
 
+## Places with no app
+
+Some services publish nothing: they only connect out. A CI runner asks a forge for jobs, a backup job sends copies away, a worker takes tasks from a queue. When one of them runs beside a published app, it is just another service in that app's Compose file, and it goes wherever that file goes. When it should run on a machine of its own, give it a place with no app, and say which Compose files it runs:
+
+```yaml
+places:
+  forge:
+    memory: 512 MB
+  runner:
+    runs: [runner-compose.yml]   # a place no app uses
+    memory: 1 GB
+```
+
+- A place no app uses must have `runs:`. A place with apps may have it too, to tie a Compose file to it explicitly.
+- `card.env` has a device line for every place, these included: `FORGE_DEVICE`, `RUNNER_DEVICE`.
+- These places start after Publish, because what they connect to is usually an app the card has just published. The README says so, in a step after Publish: Start the runner.
+- `check-env`, `test-card`, and Tear down treat them like any other place. There is just nothing to publish or verify by hostname.
+
+A service that mounts the Docker socket, runs privileged, or uses the host's network has full control of its machine. A runner usually needs the socket. That is allowed, but the README must say so in words, and `check-cards` fails a card whose README does not mention it. `check-env` notes it too.
+
 ## Conventions
 
 `card.yml` stays short because the tools read the rest from names. `<APP>` is the app name in capitals, with `-` written `_`. `check-cards` checks the first four.
@@ -102,6 +122,16 @@ measured:
     memory: 310 MB           # peak memory of the place's containers together
     images: 420 MB           # the images, as stored on the machine
     data: 64 MB              # the volumes at the end of the run
+```
+
+A card can also record checks only it knows how to make, under `steps:`, run after Verify:
+
+```yaml
+steps:
+  ...
+  checks:
+    runner-online: pass      # the runner registered with Gitea
+    workflow-runs: pass      # a workflow ran on it to the end
 ```
 
 Each step is `pass`, `fail`, or `skip`. `check-cards` fails a `test.yml` that gives no Verify result for an app, says `pass` while a step failed, or names a hostname or an address. Like the rest of a card, it leaves out device names, hostnames, and the organization id: `machine` is the operating system, architecture, and Docker version, not the device.
@@ -191,7 +221,7 @@ python3 ../card-kit/test-card.py gitea --device macbookair \
   --prepare '$COMPOSE exec -T -u git gitea gitea admin user create --admin --username gitadmin ...'
 ```
 
-It works on a copy of the card, through the same steps a person follows:
+It works on a copy of the card, through the same steps a person follows. Places with no app start after Verify, and `--check NAME=COMMAND` (repeatable) runs a card's own check after that, retrying until it passes or `--check-wait` runs out; `card.env` is exported, and `HOSTNAME_<APP>` holds each published hostname.
 
 1. **Check:** runs `check-env`, fills empty secrets the way `card.env` says, and stops on a conflict.
 2. **Start:** `up --wait`, as its own Compose project (`cardtest-<card>-<file>`), so a test never touches the machine's own containers or volumes.

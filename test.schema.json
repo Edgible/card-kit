@@ -82,6 +82,14 @@
         },
         "teardown": {
           "$ref": "#/$defs/outcome"
+        },
+        "checks": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/outcome"
+          },
+          "description": "Optional checks only this card knows how to make, run after Verify, such as a CI runner taking a job."
         }
       }
     },

@@ -46,7 +46,7 @@
     },
     "places": {
       "type": "object",
-      "description": "Optional. The minimum recommended machine for each place: everything that runs in that place together. Keys are place names used by the applications.",
+      "description": "Optional. For each place: the minimum recommended machine, and for a place no app uses, the Compose files it runs. Keys are place names.",
       "propertyNames": {
         "pattern": "^[a-z][a-z0-9-]*$"
       },
@@ -194,6 +194,16 @@
             "required"
           ],
           "description": "Whether the place needs a GPU."
+        },
+        "runs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]*compose[A-Za-z0-9._-]*\\.ya?ml$"
+          },
+          "description": "The Compose files this place runs. Required for a place no app uses: one that runs only services that connect out, such as a CI runner or a backup job. Such a place starts after Publish."
         }
       }
     },
