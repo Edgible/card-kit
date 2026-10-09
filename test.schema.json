@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Edgible/card-kit/main/test.schema.json",
+  "title": "Edgible card test result",
+  "description": "The latest result of a card's lifecycle, in test.yml beside card.yml. Committed only when the result, a step's outcome, or the images change; git history holds earlier results. No device name, hostname, organization id, or password.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tested",
+    "result",
+    "card-kit",
+    "edgible-cli",
+    "machine",
+    "images",
+    "steps",
+    "by"
+  ],
+  "properties": {
+    "tested": {
+      "type": "string",
+      "format": "date",
+      "description": "The day of the run that produced this result, YYYY-MM-DD. A rerun with the same outcome and images does not change it."
+    },
+    "result": {
+      "enum": [
+        "pass",
+        "fail"
+      ],
+      "description": "pass only when every step passed."
+    },
+    "card-kit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{7,40}$",
+      "description": "The card-kit commit the checks came from."
+    },
+    "edgible-cli": {
+      "type": "string",
+      "minLength": 1,
+      "description": "edgible --version."
+    },
+    "machine": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Operating system and architecture, and the Docker version. Not the device name."
+    },
+    "images": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Each image as it ran, ideally with its digest."
+    },
+    "steps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "check-env",
+        "start",
+        "publish",
+        "verify",
+        "teardown"
+      ],
+      "properties": {
+        "check-env": {
+          "$ref": "#/$defs/outcome"
+        },
+        "start": {
+          "$ref": "#/$defs/outcome"
+        },
+        "publish": {
+          "$ref": "#/$defs/outcome"
+        },
+        "verify": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/outcome"
+          },
+          "description": "One entry per app in card.yml."
+        },
+        "teardown": {
+          "$ref": "#/$defs/outcome"
+        }
+      }
+    },
+    "duration": {
+      "type": "string",
+      "pattern": "^([0-9]+h)?([0-9]+m)?([0-9]+s)?$"
+    },
+    "by": {
+      "enum": [
+        "agent",
+        "person"
+      ]
+    },
+    "notes": {
+      "type": "string",
+      "description": "What a reader should know about this run, such as a step that needed a retry."
+    }
+  },
+  "$defs": {
+    "outcome": {
+      "enum": [
+        "pass",
+        "fail",
+        "skip"
+      ]
+    }
+  }
+}

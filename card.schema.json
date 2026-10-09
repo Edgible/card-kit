@@ -5,7 +5,12 @@
   "description": "Source of truth for a shareable pattern. A valid card has no device name, device id, hostname, organization id, password, or volume data.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["apiVersion", "kind", "metadata", "applications"],
+  "required": [
+    "apiVersion",
+    "kind",
+    "metadata",
+    "applications"
+  ],
   "properties": {
     "apiVersion": {
       "const": "v1"
@@ -16,7 +21,10 @@
     "metadata": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "description"],
+      "required": [
+        "name",
+        "description"
+      ],
       "properties": {
         "name": {
           "type": "string",
@@ -80,7 +88,12 @@
           "description": "Host port. Copied from the workload containerPort of the export."
         },
         "protocol": {
-          "const": "https"
+          "enum": [
+            "https",
+            "tcp",
+            "udp"
+          ],
+          "description": "https for web apps. tcp or udp for apps that are not web, such as a game server or SSH; those have no auth mode, so authModes is [none], and their port is from 20000 to 29999."
         },
         "subtype": {
           "const": "existing",
@@ -94,7 +107,11 @@
           "minItems": 1,
           "uniqueItems": true,
           "items": {
-            "enum": ["none", "org", "api-key"]
+            "enum": [
+              "none",
+              "org",
+              "api-key"
+            ]
           },
           "description": "none is the auth mode None. An export that says edgible-login is written org."
         },
@@ -103,7 +120,37 @@
           "pattern": "^[a-z][a-z0-9-]*$",
           "description": "Topology name, not a device name and not a device id. Applications with the same place run on one serving device. Two applications that are one process share a place, a port, and a from."
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "protocol": {
+                "enum": [
+                  "tcp",
+                  "udp"
+                ]
+              }
+            },
+            "required": [
+              "protocol"
+            ]
+          },
+          "then": {
+            "properties": {
+              "authModes": {
+                "const": [
+                  "none"
+                ]
+              },
+              "port": {
+                "minimum": 20000,
+                "maximum": 29999
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }
