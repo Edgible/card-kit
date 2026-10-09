@@ -112,7 +112,7 @@ There are two kinds of tool, and the difference decides how each one runs.
 
 A tool that works on files in a repo runs through `run`, in the image from [Dockerfile](Dockerfile). It may use any package; add the package to the Dockerfile. Docker is the only thing an author installs.
 
-A tool that checks the machine a card runs on does not run in a container, because a container sees its own ports, processes, and files, not the machine's. That tool is one Python file that uses only the standard library, so a card README can fetch it with `curl` and run it with `python3`. `run` refuses to run it.
+A tool that checks the machine a card runs on does not run in a container, because a container sees its own ports, processes, and files, not the machine's. That tool is one Python file that uses only the standard library, so it runs with `python3` anywhere, and a card README can fetch it with `curl`. `check-env` and `test-card` are these; `run` refuses them.
 
 ### run
 
@@ -125,6 +125,27 @@ git clone https://github.com/Edgible/card-kit ../card-kit
 ```
 
 `run` mounts the repo you run it from and the kit, separately. Paths are relative to the directory you run it from. The first run builds the image, which takes about half a minute; later runs reuse it, and an edit to the Dockerfile builds a new one. A change to a tool script needs no rebuild. The tool runs as your user, so the files it writes are yours.
+
+### card-readme
+
+Writes a card's `README.md`. The parts only a person knows come from a short YAML file; the rest comes from `card.yml` and the Compose files, the same way on every card: How (Fetch, Edit card.env, Check, Start, Publish), each app's Verify check by its auth mode, Tear down, and the sizing sentence in What, from `places:`.
+
+```yaml
+why: The problem the card solves, with a link to the app.
+what: The apps, the places, and the choices made, such as the auth mode.
+data: Where the data lives.
+edit: What to set in card.env.
+start: Anything after `up --wait`, such as making the admin before Publish.
+verify:
+  gitea: What the check proves, and the first sign-in.
+docs: [Gitea, https://docs.gitea.com]
+```
+
+```bash
+../card-kit/run card-readme gitea gitea-readme.yml
+```
+
+The YAML file must be inside the repo, because `run` mounts only the repo and the kit. Keep it out of the commit unless you want it there. Fetch reads from `Edgible/starters` when you run it in a starters repo, and from `Edgible/cards` otherwise.
 
 ### check-cards
 
@@ -160,6 +181,28 @@ A Notes section adds what is worth knowing but is not a problem: a service the c
 The report ends with the remedies as lines to paste into a shell. A value that `card.env` says how to generate is generated there, and a taken port moves to a free one. All `card.env` edits are one `sed`, so `card.env.bak` is the copy from before them. A line that stops or deletes something starts with `#`. `--commands` prints only those lines, for `> fix.sh`. Exit 0 means no conflicts, 1 means at least one, and 2 means the check could not run.
 
 It needs only `python3` and Docker, and uses `edgible` when that is installed and logged in.
+
+### test-card
+
+Tests a card's whole lifecycle on a serving device and writes `test.yml`. Like `check-env`, it checks the machine, so it runs directly with `python3`, from the directory that holds the card, and `run` refuses it.
+
+```bash
+python3 ../card-kit/test-card.py gitea --device macbookair \
+  --prepare '$COMPOSE exec -T -u git gitea gitea admin user create --admin --username gitadmin ...'
+```
+
+It works on a copy of the card, through the same steps a person follows:
+
+1. **Check:** runs `check-env`, fills empty secrets the way `card.env` says, and stops on a conflict.
+2. **Start:** `up --wait`, as its own Compose project (`cardtest-<card>-<file>`), so a test never touches the machine's own containers or volumes.
+3. **Prepare:** an optional command between Start and Publish, such as making the admin so no setup page is ever public. `$COMPOSE` is the test's compose command; `card.env` is exported.
+4. **Publish:** each app in `card.yml`. A name already taken in the org is published as `test-<name>`, and the existing app is never touched.
+5. **Verify:** each hostname by its auth mode. `none` answers, `org` redirects to the Edgible sign-in, `api-key` answers `401`, and `tcp` connects. `udp` is skipped. It asks Edgible's own nameservers for the address, because resolvers keep a "does not exist" for 15 minutes when a new name is looked up too early.
+6. **Tear down:** deletes the apps it published, and removes the containers and volumes it started, and nothing else.
+
+While it runs, it measures each place: the peak memory of its containers together, its images, and its data at the end. It writes `test.yml` with `measured:`, unless nothing material (the result, a step, the images) changed since the last one. It prints a suggested `places:`: memory with half again as headroom, at least 256 MB; disk as images and data plus 1 GB; the architectures every image has. `--write-places` writes that into `card.yml`. Raise a number if the app documents a higher minimum.
+
+`--org-label` is read off an app the org already has, if you leave it out. `--by agent` marks a run made by an agent. `--keep` leaves the card running and published after Verify. It needs `dig` and `edgible`, logged in, besides Docker.
 
 ## License
 
