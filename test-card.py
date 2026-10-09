@@ -280,6 +280,9 @@ def main(argv: list[str]) -> int:
                          "no app have started; card.env is exported, and HOSTNAME_<APP> holds each published "
                          "hostname; repeat for more")
     ap.add_argument("--check-wait", type=int, default=600, help="seconds to keep retrying each --check")
+    ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
+                    help="set a card.env value in the test's copy, for one only a person may fill, such as "
+                         "accepting a licence; repeat for more")
     ap.add_argument("--by", choices=["agent", "person"], default="person")
     ap.add_argument("--gpu", choices=["none", "optional", "required"], default="none",
                     help="the gpu value in the suggested places:")
@@ -304,6 +307,9 @@ def main(argv: list[str]) -> int:
     for key in re.findall(r"^((?:[A-Z0-9_]+_)?DEVICE)=", env_file.read_text(), re.M):
         set_env(env_file, key, args.device)
     set_env(env_file, "ORG_LABEL", label)
+    for pair in args.set:
+        key, _, value = pair.partition("=")
+        set_env(env_file, key, value)
     apps = read_apps(card / "card.yml")
     composes = sorted(card.glob("*compose*.yml"))
     places = read_places(card / "card.yml")
