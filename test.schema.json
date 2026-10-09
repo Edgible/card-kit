@@ -98,6 +98,28 @@
     "notes": {
       "type": "string",
       "description": "What a reader should know about this run, such as a step that needed a retry."
+    },
+    "measured": {
+      "type": "object",
+      "description": "What the run measured for each place: the peak memory of its containers together, the size of its images, and the size of its data at the end of the run.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "memory": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)? (MB|GB|TB)$"
+          },
+          "images": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)? (MB|GB|TB)$"
+          },
+          "data": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)? (KB|MB|GB|TB)$"
+          }
+        }
+      }
     }
   },
   "$defs": {

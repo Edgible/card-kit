@@ -13,6 +13,7 @@ It also checks the naming conventions the tools rely on, so card.yml stays short
 - card.env has DEVICE for a card with one place, and <PLACE>_DEVICE for each place
   of a card with more.
 - each Compose file sets a top-level name:, the Compose project name.
+- a place in the optional places: section is one the apps use.
 
 A card may also have test.yml, the latest run of its lifecycle. When it does,
 it must match test.schema.json, give a Verify result for every app in card.yml,
@@ -87,6 +88,9 @@ def convention_errors(card_dir: Path, card: dict) -> list[str]:
             errors.append(f"app {app['name']}: no Compose file reads ${{{var}}}")
 
     places = sorted({app["place"] for app in card["applications"]})
+    for place in card.get("places", {}):
+        if place not in places:
+            errors.append(f"places names {place}, which no app in card.yml uses")
     wanted = {places[0]: "DEVICE"} if len(places) == 1 else {p: env_name(p) + "_DEVICE" for p in places}
     for place, var in wanted.items():
         if var not in env:
@@ -120,6 +124,9 @@ def test_errors(card_dir: Path, card: dict, validator: Draft202012Validator) -> 
         errors.append("test.yml: result is pass, but a step failed")
     if test["result"] == "fail" and "fail" not in outcomes:
         errors.append("test.yml: result is fail, but no step failed")
+    for place in test.get("measured", {}):
+        if place not in {app["place"] for app in card["applications"]}:
+            errors.append(f"test.yml: measured names {place}, which no app in card.yml uses")
     match = HOSTNAME.search(text)
     if match:
         errors.append(f"test.yml: names a hostname or address ({match.group(0)}); leave those out")

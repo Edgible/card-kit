@@ -34,6 +34,23 @@ A card holds what depends on Edgible or on another app in the card: hostnames, a
 
 Leave device names, hostnames, organization ids, and passwords out of the README, the Compose files, and `card.env` in git. The schema does not check the README.
 
+## Minimum recommended
+
+A card can say how big a machine each place needs, in an optional `places:` section at the end of `card.yml`. The numbers are the minimum recommended for everything in that place together: every app, database, and helper that runs there.
+
+```yaml
+places:
+  web:
+    memory: 2 GB             # for all the containers in the place together
+    disk: 6 GB               # the images and the data to start with
+    arch: [amd64, arm64]     # architectures every image in the place runs on
+    gpu: none                # none, optional, or required
+```
+
+Sizes are a number, a space, and `MB`, `GB`, or `TB`. Each field is optional, and a card without `places:` is still valid. `check-cards` checks that each place named there is one the apps use. `check-env` compares the places being started with the machine, adding them up when two places share it, and reports a shortfall as a warning, not a conflict.
+
+The README's What section says the same numbers in words, so a reader who never opens `card.yml` sees them. A starter always has `places:`, from the sizes its test measured (see `measured:` under [Test results](#test-results)) plus a margin.
+
 ## Conventions
 
 `card.yml` stays short because the tools read the rest from names. `<APP>` is the app name in capitals, with `-` written `_`. `check-cards` checks the first four.
@@ -75,6 +92,16 @@ steps:
   teardown: pass
 duration: 4m12s
 by: agent                    # agent or person
+```
+
+A run can also record what it measured for each place, which is where the numbers in `places:` come from:
+
+```yaml
+measured:
+  gitea:
+    memory: 310 MB           # peak memory of the place's containers together
+    images: 420 MB           # the images, as stored on the machine
+    data: 64 MB              # the volumes at the end of the run
 ```
 
 Each step is `pass`, `fail`, or `skip`. `check-cards` fails a `test.yml` that gives no Verify result for an app, says `pass` while a step failed, or names a hostname or an address. Like the rest of a card, it leaves out device names, hostnames, and the organization id: `machine` is the operating system, architecture, and Docker version, not the device.
@@ -126,7 +153,7 @@ python3 check-env.py website
 python3 check-env.py website -f kuma-compose.yml
 ```
 
-Compose resolves each file with `card.env`, so the ports and names it checks are the ones `docker compose up` would use. It looks for empty required values, host ports already in use, container names already taken, Compose project names used by another file, volumes left by an earlier run, `DEVICE` values that match no device, and Edgible apps with the same name. Each conflict prints a remedy.
+Compose resolves each file with `card.env`, so the ports and names it checks are the ones `docker compose up` would use. When `card.yml` has `places:`, a Sizing section compares them with the machine: memory and CPU type from `docker info`, free disk where Docker keeps its data, and the architectures each image is published for. A shortfall is a warning, never a conflict. It looks for empty required values, host ports already in use, container names already taken, Compose project names used by another file, volumes left by an earlier run, `DEVICE` values that match no device, and Edgible apps with the same name. Each conflict prints a remedy.
 
 A Notes section adds what is worth knowing but is not a problem: a service the card starts that already runs elsewhere on the machine, an image tag such as `latest` that moves with each release, and where each service's healthcheck comes from. Notes never count as conflicts or warnings.
 
