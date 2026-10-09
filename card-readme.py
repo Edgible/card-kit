@@ -59,8 +59,11 @@ def main(argv: list[str]) -> int:
     name = d.resolve().name
     card = yaml.safe_load((d / "card.yml").read_text())
     spec = yaml.safe_load(args.spec.read_text())
-    git_config = Path("/repo/.git/config")
-    repo = args.repo or ("starters" if git_config.is_file() and "starters" in git_config.read_text() else "cards")
+    try:
+        detected = "starters" if "starters" in Path("/repo/.git/config").read_text() else "cards"
+    except OSError:
+        detected = "cards"
+    repo = args.repo or detected
     apps = card["applications"]
     composes = sorted(p.name for p in d.glob("*compose*.yml"))
     env = f"--env-file {name}/card.env"
@@ -138,7 +141,7 @@ def main(argv: list[str]) -> int:
                   "    end\n')")
     helper_steps = ""
     for i, pl in enumerate(helper_places):
-        where = on(pl).rstrip("\n") + " " if multi else ""
+        where = f"On the machine for place `{pl}`. " if multi else ""
         note = ((spec.get("helpers") or {}).get(pl) or "").strip()
         helper_steps += (f"\n### {6 + i}. Start the {pl}\n\n{where}Its services connect out to what Publish "
                          f"published, so they start now.\n\n{FENCE}bash\n{run_files(files_of[pl], 'up -d --wait')}\n"
@@ -146,6 +149,10 @@ def main(argv: list[str]) -> int:
     fetch_note = ("\n\nOn each machine that runs a place, fetch the card and set up `card.env` the same way: "
                   "the places share its settings." if multi else "")
     stop_order = helper_places + app_places
+    up_ps = lambda files: (f"{FENCE}bash\n{run_files(files, 'up -d --wait')}\n"
+                           f"{run_files(files, 'ps')}\n{FENCE}")
+    start_block = ("\n\n".join(on(pl) + up_ps(files_of[pl]) for pl in app_places if files_of[pl])
+                   if multi else up_ps(composes))
     out = f"""# {name}
 
 ## Why
@@ -191,7 +198,7 @@ It fills each empty secret and moves a taken port, as lines to paste. Run it aga
 
 ### 4. Start
 
-{per_place(app_places, 'up -d --wait') if multi else FENCE + 'bash' + chr(10) + run('up -d --wait') + chr(10) + run('ps') + chr(10) + FENCE}
+{start_block}
 
 `--wait` returns when each service is running, and healthy when it has a healthcheck. {spec.get('start', '').strip()}
 

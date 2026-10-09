@@ -150,8 +150,10 @@ def test_errors(card_dir: Path, card: dict, validator: Draft202012Validator) -> 
         errors.append("test.yml: result is pass, but a step failed")
     if test["result"] == "fail" and "fail" not in outcomes:
         errors.append("test.yml: result is fail, but no step failed")
+    known = {app["place"] for app in card["applications"]} | {
+        p for p, spec in (card.get("places") or {}).items() if spec.get("runs")}
     for place in test.get("measured", {}):
-        if place not in {app["place"] for app in card["applications"]}:
+        if place not in known:
             errors.append(f"test.yml: measured names {place}, which no app in card.yml uses")
     match = HOSTNAME.search(text)
     if match:
