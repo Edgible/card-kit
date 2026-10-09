@@ -1,0 +1,28 @@
+name: kit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  cards:
+    # A change to the kit must still pass every card in Edgible/cards.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: card-kit
+      - uses: actions/checkout@v4
+        with:
+          repository: Edgible/cards
+          path: cards
+      - name: check-cards on Edgible/cards
+        run: |
+          cd cards
+          # Cards sit at the top level; before that move they were under cards/.
+          if [ -d cards ] && ! ls */card.yml >/dev/null 2>&1; then cd cards; fi
+          ../card-kit/run check-cards 2>&1 || ../../card-kit/run check-cards
