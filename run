@@ -1,0 +1,55 @@
+#!/bin/sh
+# Run a card-kit tool on the repo you are in, in the image from the kit's Dockerfile.
+# From the root of a cards or starters repo, with card-kit cloned beside it:
+#   ../card-kit/run check-cards
+#   ../card-kit/run card-image website
+# The image is built on first use and rebuilt when the Dockerfile changes.
+# Docker is the only requirement.
+
+set -eu
+
+kit=$(cd "$(dirname "$0")" && pwd)
+repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+
+if [ $# -eq 0 ]; then
+  echo "usage: <path to card-kit>/run <tool> [args...]" >&2
+  echo "tools: $(cd "$kit" && ls *.py | sed 's/\.py$//' | grep -v '^check-env$' | tr '\n' ' ')" >&2
+  exit 2
+fi
+
+tool=$1
+shift
+
+if [ "$tool" = check-env ]; then
+  echo "check-env checks the machine a card runs on, so it runs outside a container:" >&2
+  echo "  python3 $kit/check-env.py $*" >&2
+  exit 2
+fi
+
+if [ ! -f "$kit/$tool.py" ]; then
+  echo "no tool $tool.py in $kit" >&2
+  exit 2
+fi
+
+# The tag follows the Dockerfile, so an edit to it builds a new image.
+tag="edgible-card-kit:$(cksum < "$kit/Dockerfile" | cut -d ' ' -f 1)"
+if ! docker image inspect "$tag" > /dev/null 2>&1; then
+  echo "building $tag (first use)" >&2
+  docker build --quiet --tag "$tag" - < "$kit/Dockerfile" > /dev/null
+fi
+
+# Run from the same directory under the repo, so relative paths still work.
+case "$PWD/" in
+  "$repo"/*) here=${PWD#"$repo"} ;;
+  *) here="" ;;
+esac
+
+# The repo and the kit are mounted separately; the tool runs as the calling user,
+# so files it writes are not owned by root on Linux.
+exec docker run --rm \
+  --user "$(id -u):$(id -g)" \
+  --env HOME=/tmp \
+  --volume "$repo:/repo" \
+  --volume "$kit:/kit:ro" \
+  --workdir "/repo$here" \
+  "$tag" python "/kit/$tool.py" "$@"
