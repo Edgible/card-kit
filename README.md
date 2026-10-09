@@ -52,7 +52,9 @@ A card that may be combined with others reads better with names that say which a
 
 ## Test results
 
-A card can carry `test.yml`, the latest run of its whole lifecycle: Check, Start, Publish, Verify, and Tear down. Git history holds the earlier runs. [test.schema.json](test.schema.json) is its source of truth, and `check-cards` checks it when it is there. Starters always have one; for a card it is optional.
+A card can carry `test.yml`, the latest result of its whole lifecycle: Check, Start, Publish, Verify, and Tear down. Git history holds the earlier ones.
+
+Commit `test.yml` only when something material changes: the result, a step's outcome, or the images. A rerun with the same outcome and the same images leaves the file alone, so `tested` is the day of the run that produced this result, not the most recent run. [test.schema.json](test.schema.json) is its source of truth, and `check-cards` checks it when it is there. Starters always have one; for a card it is optional.
 
 ```yaml
 tested: 2026-10-10
