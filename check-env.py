@@ -586,6 +586,7 @@ def main(argv: list[str]) -> int:
     # Resolve every file first. A missing value stops the rest for that file.
     report.section("card.env")
     resolved: list[tuple[Path, dict]] = []
+    asked: set[str] = set()
     for compose in files:
         config, error = compose_config(compose, env_file)
         # Compose stops at the first empty value, so list every required one here.
@@ -593,6 +594,7 @@ def main(argv: list[str]) -> int:
         # such as ${URL:-https://app.${ORG_LABEL:?}.edgible.com} with URL set, is not needed.
         required = dict.fromkeys(REQUIRED_VAR.findall(compose.read_text()))
         empty = [var for var in required if not env.get(var)] if config is None else []
+        asked.update(empty)
         if empty:
             made = [var for var in empty if var in generate]
             by_hand = [var for var in empty if var not in generate]
@@ -613,6 +615,14 @@ def main(argv: list[str]) -> int:
             continue
         resolved.append((compose, config))
         report.ok(f"{compose.name} resolves")
+    # A secret the Compose files never read, such as an admin password a README step uses,
+    # is still empty unless it is made here too.
+    for var, shell in generate.items():
+        if var in env and not env[var] and var not in asked:
+            report.conflict(
+                f"{var} is empty in {env_file.name}, and its comment says how to make it",
+                Edit(var, "empty; a new value, made the way its comment says", shell=shell),
+            )
     devices, existing_apps, edgible_note = edgible_lists()
     device_names = ", ".join(sorted(d["name"] for d in devices or [])) or "none"
     for key, value in env.items():
