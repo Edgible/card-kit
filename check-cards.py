@@ -67,6 +67,12 @@ def convention_errors(card_dir: Path, card: dict) -> list[str]:
         return [f"{env_path.name} is missing"]
     env = read_env(env_path)
     composes = {f.name: f.read_text() for f in sorted(card_dir.glob("*compose*.yml"))}
+    # Publish reads card.env in the shell (. card.env), so a value with a space needs quotes.
+    for number, line in enumerate(env_path.read_text().splitlines(), 1):
+        if "=" in line and not line.lstrip().startswith("#"):
+            value = line.split("=", 1)[1]
+            if re.search(r"\s", value) and not re.fullmatch(r"\s*(\"[^\"]*\"|'[^']*')\s*", value):
+                errors.append(f"card.env line {number}: quote the value, because the shell reads card.env too")
     if not composes:
         errors.append("no *compose*.yml file next to card.yml")
     for name, text in composes.items():
