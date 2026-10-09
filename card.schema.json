@@ -43,6 +43,16 @@
       "items": {
         "$ref": "#/$defs/application"
       }
+    },
+    "places": {
+      "type": "object",
+      "description": "Optional. The minimum recommended machine for each place: everything that runs in that place together. Keys are place names used by the applications.",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/place"
+      }
     }
   },
   "$defs": {
@@ -151,6 +161,46 @@
           }
         }
       ]
+    },
+    "place": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "memory": {
+          "$ref": "#/$defs/size",
+          "description": "Memory for everything in the place together."
+        },
+        "disk": {
+          "$ref": "#/$defs/size",
+          "description": "Disk for the images and the data to start with."
+        },
+        "arch": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "amd64",
+              "arm64",
+              "arm"
+            ]
+          },
+          "description": "CPU architectures every image in the place runs on."
+        },
+        "gpu": {
+          "enum": [
+            "none",
+            "optional",
+            "required"
+          ],
+          "description": "Whether the place needs a GPU."
+        }
+      }
+    },
+    "size": {
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)? (MB|GB|TB)$",
+      "description": "Such as 512 MB or 2 GB."
     }
   }
 }

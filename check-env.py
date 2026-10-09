@@ -207,16 +207,18 @@ def generators(path: Path) -> dict[str, str]:
 
 
 def read_apps(card_yml: Path) -> list[dict[str, str]]:
-    """name and place of each application. card.yml is flat enough to read without pyyaml."""
+    """name, place, port and image of each application. card.yml is flat enough to read without pyyaml."""
     apps: list[dict[str, str]] = []
     for line in card_yml.read_text().splitlines():
         match = re.match(r"^\s*-\s+name:\s*(\S+)", line)
         if match:
             apps.append({"name": match.group(1)})
             continue
-        match = re.match(r"^\s+place:\s*(\S+)", line)
+        match = re.match(r"^\s+(place|port|from):\s*(\S+)", line)
         if match and apps:
-            apps[-1]["place"] = match.group(1)
+            apps[-1][match.group(1)] = match.group(2)
+        if re.match(r"^places:", line):
+            break
     return apps
 
 
@@ -348,6 +350,135 @@ def image_healthcheck(image: str) -> bool | None:
         return None
     test = json.loads(proc.stdout.strip() or "null") or {}
     return bool(test.get("Test")) and test["Test"] != ["NONE"]
+
+
+UNITS = {"KB": 1e3, "MB": 1e6, "GB": 1e9, "TB": 1e12}
+ARCH = {"x86_64": "amd64", "amd64": "amd64", "aarch64": "arm64", "arm64": "arm64", "armv7l": "arm", "arm": "arm"}
+
+
+def size_bytes(text: str) -> float:
+    number, unit = text.split()
+    return float(number) * UNITS[unit]
+
+
+def human(n: float) -> str:
+    for unit in ("TB", "GB", "MB"):
+        if n >= UNITS[unit]:
+            return f"{n / UNITS[unit]:.1f} {unit}".replace(".0 ", " ")
+    return f"{n / 1e3:.0f} KB"
+
+
+def read_places(card_yml: Path) -> dict[str, dict]:
+    """The places: section of card.yml. It is flat enough to read without pyyaml."""
+    places: dict[str, dict] = {}
+    inside, current = False, None
+    for line in card_yml.read_text().splitlines():
+        if re.match(r"^places:\s*$", line):
+            inside = True
+            continue
+        if inside and line and not line.startswith(" "):
+            break
+        if not inside or not line.strip() or line.strip().startswith("#"):
+            continue
+        m = re.match(r"^  ([a-z][a-z0-9-]*):\s*$", line)
+        if m:
+            current = places.setdefault(m.group(1), {})
+            continue
+        m = re.match(r"^    (memory|disk|arch|gpu):\s*(.+?)\s*$", line)
+        if m and current is not None:
+            value = m.group(2)
+            current[m.group(1)] = [a.strip() for a in value.strip("[]").split(",")] if m.group(1) == "arch" else value
+    return places
+
+
+def file_places(card_yml: Path, compose: Path, env: dict[str, str]) -> set[str]:
+    """The places a Compose file runs, from the <APP>_PORT variable each app's file reads."""
+    text = compose.read_text()
+    owners: dict[tuple, str] = {}
+    found = set()
+    for app in read_apps(card_yml):
+        key = (app.get("port"), app.get("place"), app.get("from"))
+        owner = owners.setdefault(key, app["name"])
+        if "${" + owner.upper().replace("-", "_") + "_PORT" in text:
+            found.add(app.get("place", ""))
+    return found
+
+
+def machine_disk_free() -> float | None:
+    root = run(["docker", "info", "--format", "{{.DockerRootDir}}"]).stdout.strip()
+    if root and Path(root).exists():
+        return float(shutil.disk_usage(root).free)
+    # Docker Desktop keeps its data in a VM; ask a container how much the VM has free.
+    if run(["docker", "image", "inspect", "alpine"]).returncode == 0:
+        out = run(["docker", "run", "--rm", "alpine", "df", "-Pk", "/"]).stdout.splitlines()
+        if len(out) > 1:
+            return float(out[1].split()[3]) * 1024
+    return None
+
+
+def image_archs(image: str) -> set[str] | None:
+    proc = run(["docker", "buildx", "imagetools", "inspect", image, "--format", "{{json .Manifest}}"])
+    if proc.returncode != 0:
+        return None
+    manifest = json.loads(proc.stdout or "{}")
+    archs = {m.get("platform", {}).get("architecture") for m in manifest.get("manifests", [])}
+    archs.discard(None); archs.discard("unknown")
+    return {ARCH.get(a, a) for a in archs} or None
+
+
+def sizing(report: "Report", card_yml: Path, files: list[Path], env_file: Path, env: dict[str, str]) -> None:
+    """Compare the minimum recommended for the places being checked with this machine."""
+    places = read_places(card_yml)
+    if not places:
+        return
+    report.section("Sizing")
+    here = set()
+    for compose in files:
+        here |= file_places(card_yml, compose, env)
+    here = {p for p in here if p in places} or set(places)
+    names = ", ".join(sorted(here))
+    need_mem = sum(size_bytes(places[p]["memory"]) for p in here if "memory" in places[p])
+    need_disk = sum(size_bytes(places[p]["disk"]) for p in here if "disk" in places[p])
+    info = json.loads(run(["docker", "info", "--format", "{{json .}}"]).stdout or "{}")
+    mem, arch = float(info.get("MemTotal", 0)), ARCH.get(info.get("Architecture", ""), info.get("Architecture", ""))
+    if need_mem:
+        line = f"memory: {names} wants {human(need_mem)}; Docker has {human(mem)}"
+        report.warn(line, "give Docker more memory, or run a place on another device") if mem < need_mem else report.ok(line)
+    if need_disk:
+        free = machine_disk_free()
+        if free is None:
+            report.skip(f"disk: {names} wants {human(need_disk)}; free space could not be measured")
+        else:
+            line = f"disk: {names} wants {human(need_disk)}; {human(free)} free where Docker keeps its data"
+            report.warn(line, "free some space, or run a place on another device") if free < need_disk else report.ok(line)
+    arch_ok = True
+    for p in sorted(here):
+        archs = places[p].get("arch")
+        if archs and arch and arch not in archs:
+            arch_ok = False
+            report.warn(f"cpu: place {p} is for {', '.join(archs)}; this machine is {arch}",
+                        "run that place on a device with one of those")
+        gpu = places[p].get("gpu", "none")
+        if gpu == "required" and "nvidia" not in json.dumps(info.get("Runtimes", {})):
+            report.warn(f"gpu: place {p} needs a GPU, and Docker here has no GPU runtime",
+                        "run that place on a device with a GPU")
+        elif gpu == "optional":
+            report.note(f"gpu: place {p} can use a GPU, and runs without one")
+    for compose in files:
+        config, _ = compose_config(compose, env_file, {v: "placeholder" for v in REQUIRED_VAR.findall(compose.read_text()) if not env.get(v)})
+        for service, spec in (config or {}).get("services", {}).items():
+            image = spec.get("image")
+            if not image or "build" in spec:
+                continue
+            archs = image_archs(image)
+            if archs is None:
+                continue
+            if arch and arch not in archs:
+                arch_ok = False
+                report.warn(f"cpu: {service} ({image}) has no {arch} image; it has {', '.join(sorted(archs))}",
+                            "run this card on a device with one of those")
+    if arch and arch_ok:
+        report.ok(f"cpu: this machine is {arch}, and every image has a build for it")
 
 
 def notes(
@@ -725,6 +856,7 @@ def main(argv: list[str]) -> int:
                     f"or publish this one under another name, such as --name {card.name}-{app['name']}",
                 )
 
+    sizing(report, card_yml, files, env_file, env)
     notes(report, files, env_file, env, containers)
 
     rerun = shlex.join(["python3", sys.argv[0], *[a for a in argv if a != "--commands"]])
