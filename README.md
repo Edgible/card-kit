@@ -6,6 +6,8 @@ The format of an Edgible card, and the tools that check and build one. [Edgible/
 
 A card records a deployment pattern so someone else can reproduce it: the programs, the images, the ports, the auth mode on each hostname, and which apps share a serving device. It leaves out device names, hostnames, the organization id, and passwords, so the next person maps each place to a serving device they have.
 
+Most apps are web apps published over `https`. An app that is not web, such as a game server or SSH, is published over `tcp` or `udp`. Such an app has no auth mode, so its `authModes` is `[none]`, and its port must be from `20000` to `29999`, the range the managed gateway opens. Treat it as reachable by anyone.
+
 A card is a directory whose name is the card's name. In a cards or starters repo, every top-level directory that holds a `card.yml` is one card.
 
 | File | What it is |
@@ -16,6 +18,7 @@ A card is a directory whose name is the card's name. In a cards or starters repo
 | `*compose*.yml` | The Compose files the card runs, next to `card.yml`. |
 | `images/` | Optional pictures drawn from `card.yml` by `card-image`. |
 | `etc/` | Optional sample files the card hands you, such as a PDF or a page. |
+| `test.yml` | Optional: the latest run of the card's lifecycle. Every starter has one. See [Test results](#test-results). |
 
 ## The README
 
@@ -47,6 +50,33 @@ Leave device names, hostnames, organization ids, and passwords out of the README
 
 A card that may be combined with others reads better with names that say which app they belong to: `UMAMI_DB_PASSWORD` rather than `POSTGRES_PASSWORD`, a service called `umami-db` rather than `db`, and no `container_name`. Starters follow this so they combine cleanly. For a card it is advice, not a check.
 
+## Test results
+
+A card can carry `test.yml`, the latest run of its whole lifecycle: Check, Start, Publish, Verify, and Tear down. Git history holds the earlier runs. [test.schema.json](test.schema.json) is its source of truth, and `check-cards` checks it when it is there. Starters always have one; for a card it is optional.
+
+```yaml
+tested: 2026-10-10
+result: pass                 # pass only when no step failed
+card-kit: 3f2a9c1            # the card-kit commit the checks came from
+edgible-cli: 1.4.6
+machine: linux/amd64, docker 29.4
+images:
+  - gitea/gitea:1.24.6
+  - postgres:17-alpine
+steps:
+  check-env: pass
+  start: pass                # up --wait, every service running or healthy
+  publish: pass
+  verify:                    # one entry per app in card.yml
+    gitea: pass
+    gitea-ssh: pass
+  teardown: pass
+duration: 4m12s
+by: agent                    # agent or person
+```
+
+Each step is `pass`, `fail`, or `skip`. `check-cards` fails a `test.yml` that gives no Verify result for an app, says `pass` while a step failed, or names a hostname or an address. Like the rest of a card, it leaves out device names, hostnames, and the organization id: `machine` is the operating system, architecture, and Docker version, not the device.
+
 ## Tools
 
 There are two kinds of tool, and the difference decides how each one runs.
@@ -69,7 +99,7 @@ git clone https://github.com/Edgible/card-kit ../card-kit
 
 ### check-cards
 
-Checks each `card.yml` against [card.schema.json](card.schema.json), checks that `metadata.name` matches the directory name, and checks the first four conventions above. With no arguments it checks every top-level `*/card.yml` in the current directory. Each failure says what to change. The cards and starters repos run this on every pull request.
+Checks each `card.yml` against [card.schema.json](card.schema.json), checks that `metadata.name` matches the directory name, and checks the first four conventions above. When a card has `test.yml`, it checks that too. With no arguments it checks every top-level `*/card.yml` in the current directory. Each failure says what to change. The cards and starters repos run this on every pull request.
 
 ```bash
 ../card-kit/run check-cards

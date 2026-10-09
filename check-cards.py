@@ -13,6 +13,10 @@ It also checks the naming conventions the tools rely on, so card.yml stays short
 - card.env has DEVICE for a card with one place, and <PLACE>_DEVICE for each place
   of a card with more.
 - each Compose file sets a top-level name:, the Compose project name.
+
+A card may also have test.yml, the latest run of its lifecycle. When it does,
+it must match test.schema.json, give a Verify result for every app in card.yml,
+say pass only when no step failed, and name no hostname.
 """
 
 from __future__ import annotations
@@ -27,6 +31,8 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
 SCHEMA_PATH = Path(__file__).resolve().parent / "card.schema.json"
+TEST_SCHEMA_PATH = Path(__file__).resolve().parent / "test.schema.json"
+HOSTNAME = re.compile(r"[a-z0-9-]+\.[a-z0-9-]+\.edgible\.com|\b\d{1,3}(?:\.\d{1,3}){3}\b")
 
 
 def card_paths(argv: list[str]) -> list[Path]:
@@ -88,10 +94,45 @@ def convention_errors(card_dir: Path, card: dict) -> list[str]:
     return errors
 
 
+def test_errors(card_dir: Path, card: dict, validator: Draft202012Validator) -> list[str]:
+    """What is wrong with test.yml, if the card has one."""
+    path = card_dir / "test.yml"
+    if not path.is_file():
+        return []
+    text = path.read_text()
+    try:
+        test = yaml.safe_load(text)
+        # YAML reads an unquoted date as a date; the schema checks the text.
+        if test and not isinstance(test.get("tested"), str) and test.get("tested") is not None:
+            test["tested"] = str(test["tested"])
+        validator.validate(test)
+    except (yaml.YAMLError, ValidationError) as exc:
+        return [f"test.yml: {getattr(exc, 'message', exc)}"]
+    errors = []
+    apps = {app["name"] for app in card["applications"]}
+    verified = set(test["steps"]["verify"])
+    for name in sorted(apps - verified):
+        errors.append(f"test.yml: no verify result for app {name}")
+    for name in sorted(verified - apps):
+        errors.append(f"test.yml: verify names {name}, which is not an app in card.yml")
+    outcomes = [v for k, v in test["steps"].items() if k != "verify"] + list(test["steps"]["verify"].values())
+    if test["result"] == "pass" and "fail" in outcomes:
+        errors.append("test.yml: result is pass, but a step failed")
+    if test["result"] == "fail" and "fail" not in outcomes:
+        errors.append("test.yml: result is fail, but no step failed")
+    match = HOSTNAME.search(text)
+    if match:
+        errors.append(f"test.yml: names a hostname or address ({match.group(0)}); leave those out")
+    return errors
+
+
 def main(argv: list[str]) -> int:
     schema = json.loads(SCHEMA_PATH.read_text())
     validator = Draft202012Validator(
         schema, format_checker=Draft202012Validator.FORMAT_CHECKER
+    )
+    test_validator = Draft202012Validator(
+        json.loads(TEST_SCHEMA_PATH.read_text()), format_checker=Draft202012Validator.FORMAT_CHECKER
     )
     failed = False
     for path in card_paths(argv):
@@ -103,13 +144,18 @@ def main(argv: list[str]) -> int:
                     f"{path}: metadata.name is {name}, directory is {path.parent.name}"
                 )
             validator.validate(card)
-            errors = convention_errors(path.parent, card)
+            errors = convention_errors(path.parent, card) + test_errors(path.parent, card, test_validator)
             if errors:
                 for error in errors:
                     print(f"{path}: {error}", file=sys.stderr)
                 failed = True
                 continue
-        except (OSError, KeyError, TypeError, ValidationError, yaml.YAMLError) as exc:
+        except ValidationError as exc:
+            where = "/".join(str(part) for part in exc.absolute_path) or "the top level"
+            print(f"{path}: {exc.message} (at {where})", file=sys.stderr)
+            failed = True
+            continue
+        except (OSError, KeyError, TypeError, yaml.YAMLError) as exc:
             print(f"{path}: {exc}", file=sys.stderr)
             failed = True
             continue
