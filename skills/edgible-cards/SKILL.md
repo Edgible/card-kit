@@ -1,6 +1,6 @@
 ---
 name: edgible-cards
-description: Self-host an app on a machine you own with Edgible, from a tested Edgible starter or card. Use when someone asks to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on) with Edgible, when no starter or card fits and one should be built, or when a starter, card, or card-kit tool needs fixing.
+description: Self-host an app on a machine you own with Edgible, from a tested Edgible starter or card, and look after it afterwards. Use when someone asks to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on) with Edgible; asks what is running, whether it works, or why it is broken; wants to sign in, get an API key, change a setting, pause, back up, restore, upgrade, move, or remove such an app; when no starter or card fits and one should be built; or when a starter, card, or card-kit tool needs fixing.
 ---
 
 # Self-host with Edgible starters and cards
@@ -9,10 +9,13 @@ A **starter** is one self-hosted app, tested end to end on a real Edgible servin
 
 Work from a starter or card whenever one fits. Its README is a tested path, and following it gives the same result for everyone. Improvise only where the card leaves a choice open, and say so when you do.
 
+Steps 1 to 5 set an app up. [After it is running](#after-it-is-running) covers everything after that: what is running, whether it works, fixing it, signing in, changing it, pausing, backing up, upgrading, moving, and removing it.
+
 ## Rules
 
-- **Ask first** before any of these: publishing an admin or personal interface with auth mode `none`; mounting the Docker socket (a CI runner does), because that gives full control of the machine; stopping, deleting, or changing anything this task did not create; and anything that leaves the machine for other people, such as a pull request or an issue.
-- **Never print a secret.** Secrets live in `card.env`. Run `chmod 600` on it, and tell the person where it is and which line holds what they need, such as the admin password.
+- **Ask first** before any of these: publishing an admin or personal interface with auth mode `none`; mounting the Docker socket (a CI runner does), because that gives full control of the machine; stopping, deleting, or changing anything this task did not create; deleting data, upgrading, or moving an app; and anything that leaves the machine for other people, such as a pull request or an issue.
+- **Back up before anything that can lose data:** an upgrade, a restore, a move, or deleting volumes. See [Back up and restore](#back-up-and-restore).
+- **Never print a secret.** Secrets live in `card.env`. Run `chmod 600` on it. Tell the person where it is and which line holds what they need, such as the admin password, and give them the command that shows that one line.
 - **Run every step the README gives, in order.** Never skip Check. Stop at the first step that fails, and fix it or report it. Do not work around it silently.
 - **Change only `card.env`** for this machine's settings. A change to any other file in a card is a fix: see [Fix a card or card-kit](#fix-a-card-or-card-kit).
 - **Fetch from upstream `main`.** A local clone of a cards or starters repo may be old.
@@ -83,6 +86,129 @@ Tell the person, briefly:
 - how to sign in the first time, and which `card.env` line holds the password;
 - what is still theirs to decide or do, such as changing the admin password;
 - where the card's files are, and that its README's **Tear down** removes it.
+
+## After it is running
+
+Each card runs from a directory on its machine: the one that holds its `card.yml`, its Compose files, and its `card.env`. The commands below use `dir` for that directory and `f` for a Compose file in it. Run them once per Compose file when the card has several, such as the ci card's `runner-compose.yml`:
+
+```bash
+dir=~/umami                    # the card's directory
+f=docker-compose.yml
+C="docker compose --env-file $dir/card.env -f $dir/$f"
+project=$($C config --format json | jq -r .name)
+```
+
+### What is running
+
+```bash
+docker compose ls --all    # each Compose project, with the path of its Compose file
+edgible app list           # each published app: name, port, device, status
+```
+
+The path `docker compose ls` prints leads to the card's directory, and `metadata.name` in its `card.yml` names the card. An Edgible app on the same device with the port that the card's `card.env` sets (`<APP>_PORT`) is that card's app. Once apps carry tags, `--tag card=` or `starter=` says so directly. A project named `cardtest-*` is left over from an interrupted `test-card` run, not a deployment. Tell the person, and remove it only if they agree.
+
+Answer with a short table: each card, its directory, its apps with hostname and auth mode, and whether each is up.
+
+### Is it working
+
+To prove an app works, show evidence from each layer:
+
+1. **Containers:** `$C ps` shows each service running, and healthy when it has a healthcheck.
+2. **Hostnames:** each hostname answers the way its auth mode says, checked through Edgible's nameservers as in [Deploy](#3-deploy).
+3. **The card's own checks:** the scripts its README's Verify runs, in `etc/`, and those in `test/`. Run them with `card.env` exported and `HOSTNAME_<APP>` set to each hostname: `set -a; . $dir/card.env; set +a; export HOSTNAME_UMAMI=umami.example.edgible.com`.
+4. **The goal:** what the person uses it for, end to end, such as signing in, a `git push`, a workflow run, or an event that shows up on a dashboard.
+5. **The data path:** `edgible app doctor <app>` checks the deployment, certificates, and the path from the gateway to the workload.
+
+Report each check with its result and the evidence, such as the status code or the line printed. Do not use `test-card` for this. It tests a fresh copy of the card and publishes apps of its own, not the person's running instance.
+
+### Something is wrong
+
+Work from the app outwards, and stop at the first layer that is broken:
+
+1. **Containers:** `$C ps`, then `$C logs --tail 100 <service>`.
+2. **On the machine:** `curl -sS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:<port>`, with the port from `card.env`. An `https` app is plain HTTP on the machine.
+3. **Edgible:** `edgible app doctor <app>`, `edgible app events <app>`, and `edgible certs`.
+4. **The machine:** Docker is running, `edgible agent status`, `edgible doctor`, and [Keep it running](#keep-it-running) after a restart.
+5. **DNS:** ask Edgible's nameservers before you decide a hostname is broken. The person's resolver may still remember it as missing.
+
+Fix the cause, then run [Is it working](#is-it-working). If the card itself is wrong, see [Fix a card or card-kit](#fix-a-card-or-card-kit).
+
+### Sign in, passwords, and keys
+
+- **The first sign-in:** the card's README says who the admin is, in How or Verify. List the secret names with `grep -oE '^[A-Z0-9_]+(PASSWORD|SECRET|TOKEN|KEY)[A-Z0-9_]*=' $dir/card.env`, and give the person the command that shows the line they need, such as `grep '^GITEA_ADMIN_PASSWORD=' ~/ci/card.env`.
+- **Changing a password** happens in the app, by its own docs. The value in `card.env` only made the first admin. After a change, update that line too when the card's checks or `prepare.sh` read it.
+- **An `api-key` hostname:** `edgible app api-keys create --app <app> --name <who-calls-it>` prints the key once. Give it to the person and do not store it. `edgible app api-keys list --app <app>` and `delete` manage the keys.
+- **An `org` hostname** lets in the members of the person's Edgible organization. `--allowed-orgs` on `edgible app update` adds other organizations.
+
+### Change a setting
+
+- **Auth mode:** `edgible app update <app> --auth-modes org`. Ask first before changing it to `none`.
+- **A value in `card.env`:** edit it, then run `$C up -d --wait`, which recreates the services the change affects. Run `check-env` first when the change is a port.
+- **Host port or hostname:** the CLI cannot change a published app's port or hostnames. Change `<APP>_PORT` (or the card's `<APP>_URL`, for the person's own domain), run `$C up -d --wait`, then `edgible app delete <app> --yes` and publish it again as in the README, with `--hostnames` for an own domain. The generated hostname comes from the app's name, so it stays the same. Expect a short outage, and verify through Edgible's nameservers.
+- **Pause:** `edgible app update <app> --target-state suspended`, then `$C stop`. **Resume:** `$C start`, then `--target-state running`. The data stays.
+
+### Back up and restore
+
+A copy is whole only while the containers are stopped, so a backup is a short outage. Keep `card.env` with the copies: the databases in them expect its passwords.
+
+```bash
+backups=$dir-backups; stamp=$(date +%Y%m%d-%H%M); mkdir -p "$backups"
+$C stop
+for v in $(docker volume ls -q --filter "label=com.docker.compose.project=$project"); do
+  docker run --rm -v "$v:/data:ro" -v "$backups:/backup" alpine tar -czf "/backup/$v-$stamp.tgz" -C /data .
+done
+cp "$dir/card.env" "$backups/card.env-$stamp"; chmod 600 "$backups/card.env-$stamp"
+$C start
+```
+
+A copy on the same machine does not survive the loss of that machine. Suggest the person also copies `$backups` somewhere else.
+
+**Restore** replaces the current data. Ask first, and make a fresh backup first unless the data is already lost. Use the `card.env` that was saved with the copy:
+
+```bash
+$C stop
+for v in $(docker volume ls -q --filter "label=com.docker.compose.project=$project"); do
+  docker run --rm -v "$v:/data" -v "$backups:/backup" alpine \
+    sh -c "find /data -mindepth 1 -delete && tar -xzf /backup/$v-$stamp.tgz -C /data"
+done
+$C start
+```
+
+Then run [Is it working](#is-it-working).
+
+### Upgrade
+
+1. **See what changed.** Fetch the card from upstream `main` into a new directory, and compare it with `$dir`. Its Fetch step replaces `card.env`, so never fetch over `$dir` itself.
+
+   ```bash
+   new=$(mktemp -d)
+   curl -fsSL https://github.com/Edgible/starters/archive/refs/heads/main.tar.gz \
+     | tar -xz --strip-components=2 -C "$new" starters-main/umami   # cards: Edgible/cards and cards-main/<card>
+   diff -ru -x card.env -x images -x test.yml "$dir" "$new"
+   diff <(grep -oE '^[A-Z0-9_]+=' "$dir/card.env") <(grep -oE '^[A-Z0-9_]+=' "$new/card.env")
+   ```
+
+2. **Tell the person** what will change, especially image versions and new settings. **If a database image changes major version**, such as `postgres:17` to `postgres:18`, stop: the data needs that database's own upgrade, which a new image alone does not do. Point the person to the database's docs.
+3. **Back up**, and keep the old files: `cp -R "$dir" "$dir.before-upgrade"`.
+4. **Copy the new files in, keeping `card.env`:** `rsync -a --exclude card.env "$new/" "$dir/"`. Add each new `card.env` line with its default, and run `check-env` to fill any new secret.
+5. **Start:** `$C up -d --wait` pulls the new images. Run `prepare.sh` again only if the card's README says an upgrade needs it, because it usually makes the first admin.
+6. Run [Is it working](#is-it-working). If it fails, put back `$dir.before-upgrade` and the backup, start, and check again.
+
+The published apps stay as they are, unless the card's ports or apps changed.
+
+### Move to another machine
+
+Ask first. The app is down between the old copy stopping and the new one answering.
+
+1. The new machine is a serving device that `edgible device list` shows online, with Docker.
+2. [Back up](#back-up-and-restore) on the old machine. Copy `$dir` with its `card.env` and the backups to the new machine.
+3. On the new machine, `$C create` makes the volumes without starting anything. Restore each copy into its volume, run `$C up -d --wait`, and check it on `127.0.0.1`.
+4. Switch the hostnames: `edgible app delete <app> --yes`, then publish again as in the README, with the new device's id. The generated hostname stays the same.
+5. Run [Is it working](#is-it-working). Then, on the old machine, `$C down`, and keep its volumes until the person is satisfied.
+
+### Remove
+
+Follow the card's README **Tear down**, in order: Unpublish, Stop, Delete the data (it backs up each volume to `.tgz` first), and Remove the card. Ask before deleting data. Before `rm -rf` of the card, tell the person that `card.env` holds the passwords any kept backup needs. Remove only the apps, containers, and volumes this card made.
 
 ## Build a starter
 

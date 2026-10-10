@@ -285,7 +285,7 @@ It never changes the repo. `test.yml` is the author's record of a version of a c
 
 ## Agent skill
 
-[skills/edgible-cards](skills/edgible-cards/SKILL.md) teaches an AI agent to self-host with Edgible the way this README says. It finds a starter or card that fits and puts its open choices to the person. Then it deploys and verifies by the card's README. When nothing fits, it builds a starter and tests it with `test-card`, and with the person's yes it offers the starter, or a fix, as a pull request. It is a plain `SKILL.md` in the open Agent Skills format, with shell commands only, so agents that read that format can use it.
+[skills/edgible-cards](skills/edgible-cards/SKILL.md) teaches an AI agent to self-host with Edgible the way this README says. It finds a starter or card that fits and puts its open choices to the person. Then it deploys and verifies by the card's README. After that, it answers what is running and whether it works, troubleshoots, and handles sign-in and API keys, settings, pausing, backup and restore, upgrades, moves, and removal. When nothing fits, it builds a starter and tests it with `test-card`, and with the person's yes it offers the starter, or a fix, as a pull request. It is a plain `SKILL.md` in the open Agent Skills format, with shell commands only, so agents that read that format can use it.
 
 For Claude Code, clone this repo and link the skill into your skills directory. A `git pull` then updates it:
 
