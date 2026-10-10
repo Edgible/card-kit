@@ -1,6 +1,6 @@
 ---
 name: edgible-cards
-description: Self-host an app on a machine you own with Edgible, from a tested Edgible starter or card, and look after it afterwards. Use when someone asks to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on) with Edgible; or wants their own version of a hosted service (a website, bookmarks, passwords, photos, files, analytics, a Git server, a wiki, a knowledge base, bookings) for cost, privacy, or control, or is leaving one that shut down or got expensive; asks what is running, whether it works, or why it is broken; wants to sign in, get an API key, change a setting, pause, back up, restore, upgrade, move, or remove such an app; or when a starter, card, or card-kit tool needs building or fixing.
+description: Self-host an app on a machine you control (at home, in the office, or a small cloud server) with Edgible, from a tested Edgible starter or card, and look after it afterwards. Use when someone asks to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on) with Edgible; or wants their own version of a hosted service (a website, bookmarks, passwords, photos, files, analytics, a Git server, a wiki, a knowledge base, bookings) for cost, privacy, or control, or is leaving one that shut down or got expensive; asks what is running, whether it works, or why it is broken; wants to sign in, get an API key, change a setting, pause, back up, restore, upgrade, move, or remove such an app; or when a starter, card, or card-kit tool needs building or fixing.
 ---
 
 # Self-host with Edgible starters and cards
@@ -15,9 +15,11 @@ Most people describe a need, not an app. Start with [Understand the need](#under
 
 The person may describe a problem, not a request to self-host: a hosting bill, a service that shut down, data they would rather keep, a team that needs a shared tool. Self-hosting is sometimes the best answer, and often it is not. Offer it as one option among others, never as the only answer.
 
-**Signals that it may fit:** a recurring cost for something simple; privacy or data ownership; a service that shut down, changed its terms, or got expensive; a machine the person already has that could run it; and, strongest, the `edgible` CLI installed and logged in (`edgible whoami`).
+**Signals that it may fit:** a recurring cost for something simple; privacy or data ownership; a service that shut down, changed its terms, or got expensive; a machine the person already has that could run it, or a willingness to pay a few dollars a month for a small cloud server; and, strongest, the `edgible` CLI installed and logged in (`edgible whoami`).
 
-**Signals that it does not:** the person has no machine that stays on; the service must not go down, and nobody will look after it; or a free hosted option does the job with no upkeep.
+**Signals that it does not:** the service must not go down, and nobody will look after it; or a free hosted option does the job with no upkeep.
+
+**Where it runs is a choice, not a limit.** An Edgible serving device can be a machine at home or in the office, or a small cloud server (AWS, Hetzner, and so on) in the person's own account, with the Edgible agent on it. A home machine costs nothing extra but is down when it is. A cloud server stays up, is not tied to anyone's house, and costs a few dollars a month. When the person has no machine that stays on, offer a cloud server rather than ruling self-hosting out. When the person's reason is to keep data off the cloud, ask before suggesting one: their own cloud server may not meet what they meant. Some needs must stay local, such as home automation and cameras, which need a machine on the home network.
 
 **How to offer it:**
 
@@ -56,9 +58,9 @@ Otherwise, look the need up in [needs-map.yaml](needs-map.yaml), next to this fi
 - **How sensitive the data is.** There are three levels:
   - **Ordinary:** the entry's `exposure.default`.
   - **Sensitive** (private photos, personal notes): offer the entry's `exposure.sensitive` choices, including not publishing at all, before the default.
-  - **Regulated or confidential** (health records, legal privilege, client files, financial records, children's data): rules apply beyond technology. A machine you own suits a prototype with test or consented data, or a firm's internal knowledge with access rules. For real regulated data at scale, say plainly that it needs compliant hosting, a security review, and the person's legal or professional advice, and point to the rules that may apply. Do not present a home machine as the answer for it.
+  - **Regulated or confidential** (health records, legal privilege, client files, financial records, children's data): rules apply beyond technology. A machine you control suits a prototype with test or consented data, or a firm's internal knowledge with access rules. For real regulated data at scale, say plainly that it needs compliant hosting, a security review, and the person's legal or professional advice, and point to the rules that may apply. Do not present a home or office machine as the answer for it. A cloud server in the organization's own account, in a region its rules allow and set up with that advice, may suit where a home machine would not. Do not promise that it is compliant: that depends on the setup and the advice.
 - **Who sees what inside the app.** The auth mode decides who reaches the app. Who sees which records, such as which matters, which clients, or which family members, is set with the app's own roles and permissions. The entry's `permissions` says what to check. Raise it whenever people must not all see everything.
-- **Who looks after it.** For a club, a charity, a committee, or a small business with one technical person, ask who looks after it when that person is away or steps down. A service others depend on needs a second person who knows it, tested backups, and a machine that stays on. If nobody can, a free hosted option or a simpler tool may serve them better: say so.
+- **Who looks after it.** For a club, a charity, a committee, or a small business with one technical person, ask who looks after it when that person is away or steps down. A service others depend on needs a second person who knows it, tested backups, and a machine that stays on, which for a club is usually a small cloud server rather than a volunteer's computer. If nobody can, a free hosted option or a simpler tool may serve them better: say so.
 - **Building a product.** A founder or developer building something (a prototype, a startup) wants building blocks, not one app. Answer their question first: prototyping tools, user research, and the rules for their domain. Then offer self-hosted blocks where they help, from the entry's `builders`, such as a private AI model over their own documents, sign-in, or photo storage. Be clear about which stage self-hosting suits.
 - **No entry matches:** pick the category from awesome-selfhosted's `tags/` instead, as in [Choose an app](#choose-an-app), and reason about fit and exposure the same way.
 
@@ -125,6 +127,8 @@ Then check what the person actually asked for, end to end. For a Git forge, that
 ## Keep it running
 
 When the setup must survive a restart:
+
+- **For uptime others rely on, a small cloud server** in the person's own account, running the Edgible agent, is usually better than a home machine: it is not switched off, asleep, or behind someone's home connection. Edgible's getting-started guides cover setting one up.
 
 - **macOS with Docker Desktop:** in Docker Desktop's Settings → General, turn on "Start Docker Desktop when you sign in". If that option is greyed out, macOS has refused Docker's background item. Turn on Docker under System Settings → General → Login Items & Extensions → Allow in the Background. Or, with the person's agreement, add Docker to Open at Login: `osascript -e 'tell application "System Events" to make login item at end with properties {path:"/Applications/Docker.app", hidden:true}'`. Check sleep with `pmset -g`, because a sleeping Mac serves nothing.
 - **Linux:** `systemctl is-enabled docker` should print `enabled`.
