@@ -52,6 +52,12 @@ A good answer answers the founder's question first: prototyping tools, talking t
 
 A good answer leads with practice-management systems built for clinics, because patient records are health data. It offers self-hosting at most for the booking page, and it asks which country you are in, because that decides the privacy rules.
 
+## Share an app you built
+
+> I've built a new open-source app that helps small teams keep track of equipment they lend out. How can I share it with the self-hosting community so people can run it easily?
+
+A good answer first checks that others can run it: a published container image that works on Intel and Apple Silicon, an open-source licence, and documented settings, and it helps with whatever is missing. It then offers to package the app as an Edgible starter, test it, and contribute it, saying in the pull request that you are the author. It points to awesome-selfhosted's own contribution rules, and suggests a "Run it with Edgible" section in your README.
+
 ## Name an app, or ask about one you run
 
 > I've got Edgible on my Mac already. Can you get Uptime Kuma running so I get alerts when my site at example.com goes down?
@@ -85,5 +91,6 @@ These touch the same topics, and the skill should stay out of them:
 - "Set up GitHub Actions to run pytest and Ruff on every push to my repo."
 - "Configure nginx as a reverse proxy with Let's Encrypt on my Ubuntu 24.04 VPS for two domains."
 - "We're 15 people choosing between Notion and Confluence. Can you compare their pricing and permissions features for us?"
+- "I've written a Python library for parsing GPX files. How do I publish it on PyPI?"
 
 [evals/](evals/) holds these prompts in a form the skill's tests read.

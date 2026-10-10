@@ -1,6 +1,6 @@
 ---
 name: edgible-cards
-description: Self-host an app on a machine you control (at home, in the office, or a small cloud server) with Edgible, from a tested Edgible starter or card, and look after it afterwards. Use when someone asks to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on) with Edgible; or wants their own version of a hosted service (a website, bookmarks, passwords, photos, files, analytics, a Git server, a wiki, a knowledge base, bookings) for cost, privacy, or control, or is leaving one that shut down or got expensive; asks what is running, whether it works, or why it is broken; wants to sign in, get an API key, change a setting, pause, back up, restore, upgrade, move, or remove such an app; or when a starter, card, or card-kit tool needs building or fixing.
+description: Self-host an app on a machine you control (at home, in the office, or a small cloud server) with Edgible, from a tested Edgible starter or card, and look after it afterwards. Use when someone asks to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on) with Edgible; or wants their own version of a hosted service (a website, bookmarks, passwords, photos, files, analytics, a Git server, a wiki, a knowledge base, bookings) for cost, privacy, or control, or is leaving one that shut down or got expensive; asks what is running, whether it works, or why it is broken; wants to sign in, get an API key, change a setting, pause, back up, restore, upgrade, move, or remove such an app; wants to share an app they built with the self-hosting community; or when a starter, card, or card-kit tool needs building or fixing.
 ---
 
 # Self-host with Edgible starters and cards
@@ -309,6 +309,18 @@ When nothing fits, offer to build a starter. First check the starters README's *
 3. Write the README with `card-readme`, and check the files with `check-cards` (see the card-kit README for `run`).
 4. Test it on the person's serving device until it passes: `python3 test-card.py <name> --device <device> --by agent`. Put inputs only a person may fill in `test/inputs.env`, and the app's own end-to-end checks in `test/<name>.sh`.
 5. Deploy it for the person from the tested files. Their app comes first, and contributing is optional.
+
+## Share your own app
+
+When the person wrote the app and wants others to run it easily:
+
+1. **Check that others can run it.** A starter runs a published container image, so the app needs one on a public registry, such as Docker Hub or GitHub Container Registry, with version tags. Build it for both amd64 and arm64, because people run Edgible on Intel servers and on Apple Silicon. The app also needs a licence that lets others run it, and documented settings. If something is missing, say what, and help with that first: a Dockerfile, a multi-architecture build, a release.
+2. **Build the starter** as in [Build a starter](#build-a-starter), from the app's own Compose setup. The author knows its first-run steps, its secrets, and who calls each hostname, which decides the auth mode. Ask them rather than guess.
+3. **Test it** with `test-card` until it passes.
+4. **Contribute it** as in [Contribute](#contribute), and say in the pull request that the person is the app's author. Reviewers judge it by the same checklist as any starter.
+5. **Point to where self-hosters look.** awesome-selfhosted lists free software that meets its own inclusion rules: read its contributing guide before suggesting it. A short "Run it with Edgible" section in the app's README, linking to the starter, helps people find it.
+
+If the app is one part of a bigger setup, a card that combines it with other starters may suit better.
 
 ## Contribute
 
