@@ -26,3 +26,11 @@ jobs:
           # Cards sit at the top level; before that move they were under cards/.
           if [ -d cards ] && ! ls */card.yml >/dev/null 2>&1; then cd cards; fi
           ../card-kit/run check-cards 2>&1 || ../../card-kit/run check-cards
+
+  needs-map:
+    # The skill's needs map must still match awesome-selfhosted's categories and the
+    # starters and cards that exist.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./run check-map

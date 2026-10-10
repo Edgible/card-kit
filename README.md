@@ -230,6 +230,14 @@ Writes `images/card-light.svg` and `images/card-dark.svg` for a card. The pictur
 ../card-kit/run card-image website
 ```
 
+### check-map
+
+Checks the skill's [needs map](skills/edgible-cards/needs-map.yaml): every entry has its fields, a fit rating, and both exposure choices. Each category must still be a category in awesome-selfhosted's data, and each starter and card it names must exist. It notes a starter or card that no entry names, so a new one gets a place in the map. It reads those sources over the network, and the kit's CI runs it on every pull request.
+
+```bash
+./run check-map
+```
+
 ### check-env
 
 Checks a fetched card against the machine it is about to run on, after `card.env` is edited and before the containers start. A card README fetches it on its own:
@@ -286,6 +294,8 @@ It never changes the repo. `test.yml` is the author's record of a version of a c
 ## Agent skill
 
 [skills/edgible-cards](skills/edgible-cards/SKILL.md) teaches an AI agent to self-host with Edgible the way this README says. It finds a starter or card that fits. When the person describes a need that none meets, it shortlists apps from awesome-selfhosted for them to choose from. It puts the open choices to the person. Then it deploys and verifies by the card's README. After that, it answers what is running and whether it works, troubleshoots, and handles sign-in and API keys, settings, pausing, backup and restore, upgrades, moves, and removal. When nothing fits, it builds a starter and tests it with `test-card`, and with the person's yes it offers the starter, or a fix, as a pull request. It is a plain `SKILL.md` in the open Agent Skills format, with shell commands only, so agents that read that format can use it.
+
+Most people describe a need, not an app. [needs-map.yaml](skills/edgible-cards/needs-map.yaml), next to the skill, maps needs to a self-hosted answer. Each entry is an awesome-selfhosted category, with the needs people describe in their own words, the services they leave, why they self-host it, how well it suits Edgible, how to publish it (including when the data is sensitive), what the machine needs, its starters and cards, and the questions that change the answer. A new starter or card gets its place in the map in the same pull request. `check-map` checks it.
 
 For Claude Code, clone this repo and link the skill into your skills directory. A `git pull` then updates it:
 
