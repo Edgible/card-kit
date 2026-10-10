@@ -297,6 +297,8 @@ It never changes the repo. `test.yml` is the author's record of a version of a c
 
 Most people describe a need, not an app. [needs-map.yaml](skills/edgible-cards/needs-map.yaml), next to the skill, maps needs to a self-hosted answer. Each entry is an awesome-selfhosted category, with the needs people describe in their own words, the services they leave, why they self-host it, how well it suits Edgible, how to publish it (including when the data is sensitive), what the machine needs, its starters and cards, and the questions that change the answer. A new starter or card gets its place in the map in the same pull request. `check-map` checks it.
 
+[EXAMPLES.md](skills/edgible-cards/EXAMPLES.md) shows what to ask, with what a good answer does, and [evals/](skills/edgible-cards/evals/) holds the same prompts for testing the skill.
+
 For Claude Code, clone this repo and link the skill into your skills directory. A `git pull` then updates it:
 
 ```bash

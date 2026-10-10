@@ -1,0 +1,86 @@
+[
+  {
+    "query": "I do the IT stuff for the committee of a small suburban tennis club. We want a way to make it easy for our members to self-organise and schedule tennis games on our courts. I haven't found a product that does this that's free. Help!",
+    "should_trigger": true
+  },
+  {
+    "query": "I run a small physiotherapy clinic with 3 physios. We'd like patients to book appointments online and see their exercise plans between visits. The tools we've looked at are expensive. What are our options?",
+    "should_trigger": true
+  },
+  {
+    "query": "I've got lots of photos, some of which have sensitive material that I don't want to risk on the cloud. Is there a way to manage this safely and privately?",
+    "should_trigger": true
+  },
+  {
+    "query": "Pocket is shutting down and I've got years of saved articles in it. I don't want to hand them to another company that might do the same thing. I'd like to keep reading them on my phone and laptop, and maybe share a few links with my team. I've got an old Mac mini that's always on.",
+    "should_trigger": true
+  },
+  {
+    "query": "It's costing me $40/month to host my small marketing website on Squarespace. Is there a better way?",
+    "should_trigger": true
+  },
+  {
+    "query": "I'm running a small boutique law firm that specializes in maritime law. Over time we have built up a valuable collection of cases and best practices. We need to onboard some new lawyers, and we want a way to help them make the most of this body of knowledge. Help!",
+    "should_trigger": true
+  },
+  {
+    "query": "Our family keeps all our shared passwords in a Google Doc, which I know is terrible. Is there something we could run ourselves? There's an old Intel NUC sitting in the cupboard doing nothing.",
+    "should_trigger": true
+  },
+  {
+    "query": "I want to control my lights and heating from my phone when I'm away, without everything going through the SmartThings cloud. What's the best way to set that up at home?",
+    "should_trigger": true
+  },
+  {
+    "query": "We pay Fathom about $14/month to track 3 small sites. Could we run our own analytics instead, and still have it work without a cookie banner?",
+    "should_trigger": true
+  },
+  {
+    "query": "I've got Edgible on my Mac already. Can you get Uptime Kuma running so I get alerts when my site at example.com goes down?",
+    "should_trigger": true
+  },
+  {
+    "query": "The Gitea I set up last week with Edgible won't load on my phone today. The page just times out. Can you work out what's wrong?",
+    "should_trigger": true
+  },
+  {
+    "query": "Deploy my Next.js app in ~/code/shop to Vercel, and copy the env vars from .env.production into the project settings.",
+    "should_trigger": false
+  },
+  {
+    "query": "Set up a Cloudflare Tunnel so I can reach my Home Assistant from outside the house. I already have the domain on Cloudflare.",
+    "should_trigger": true
+  },
+  {
+    "query": "How do I back up my MacBook to an external drive with Time Machine, and also keep an offsite copy in Backblaze?",
+    "should_trigger": false
+  },
+  {
+    "query": "Docker Desktop on my Mac keeps saying 'Cannot connect to the Docker daemon at unix:///var/run/docker.sock'. How do I fix it?",
+    "should_trigger": false
+  },
+  {
+    "query": "Write a docker-compose.yml for local development of my Flask app with Postgres 16 and Redis, with a volume for the database and hot reload for the app.",
+    "should_trigger": false
+  },
+  {
+    "query": "Our WordPress site on WP Engine got really slow after the last plugin update. Query Monitor shows 400 queries on the home page. What should I look at first?",
+    "should_trigger": false
+  },
+  {
+    "query": "Set up GitHub Actions to run pytest and Ruff on every push to my repo, with a cache for pip.",
+    "should_trigger": false
+  },
+  {
+    "query": "Configure nginx as a reverse proxy with Let's Encrypt on my Ubuntu 24.04 VPS for two domains, api.example.com and app.example.com.",
+    "should_trigger": false
+  },
+  {
+    "query": "My Postgres query on RDS takes 30 seconds. Here's the EXPLAIN ANALYZE output. Can you tell me which index to add?",
+    "should_trigger": false
+  },
+  {
+    "query": "We're 15 people choosing between Notion and Confluence. Can you compare their pricing and permissions features for us?",
+    "should_trigger": false
+  }
+]
