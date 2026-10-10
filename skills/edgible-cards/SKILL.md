@@ -22,6 +22,8 @@ Steps 1 to 5 set an app up. [After it is running](#after-it-is-running) covers e
 
 ## 1. Find
 
+The person names an app ("self-host Miniflux") or describes a need ("something for bookmarks"). Either way, look for a starter or card first. For a need, read each candidate's **Why** to see whether it meets that need.
+
 List what exists. Starters and cards are the top-level directories that hold a `card.yml`:
 
 ```bash
@@ -36,7 +38,10 @@ Read the README of each candidate: the **Why** and **What** sections say what it
 
 The Edgible catalog (`edgible template list`) has managed templates. Read a template's description for its limits before you offer it. A template's choices are fixed, and a starter or card can be changed.
 
-If nothing fits, go to [Build a starter](#build-a-starter).
+If nothing fits:
+
+- **The person described a need:** go to [Choose an app](#choose-an-app), then [Build a starter](#build-a-starter) for the app they choose.
+- **The person named an app:** go to [Build a starter](#build-a-starter). If that app is unsuitable (archived, no maintained container image, or on the starters README's **What is not a starter** list), say why, and offer alternatives from its category with [Choose an app](#choose-an-app).
 
 ## 2. Decide with the person
 
@@ -209,6 +214,36 @@ Ask first. The app is down between the old copy stopping and the new one answeri
 ### Remove
 
 Follow the card's README **Tear down**, in order: Unpublish, Stop, Delete the data (it backs up each volume to `.tgz` first), and Remove the card. Ask before deleting data. Before `rm -rf` of the card, tell the person that `card.env` holds the passwords any kept backup needs. Remove only the apps, containers, and volumes this card made.
+
+## Choose an app
+
+Use this step only when the person described a need and no starter or card meets it, or when the app they named is unsuitable. Do not pick from memory. Shortlist from [awesome-selfhosted](https://awesome-selfhosted.net), a curated list of free self-hosted software, through its machine-readable data. That data has one YAML file per app, with its categories (`tags`), platforms, licence, stars, last update, and whether it is archived.
+
+```bash
+ash=$(mktemp -d)
+curl -fsSL https://github.com/awesome-selfhosted/awesome-selfhosted-data/archive/refs/heads/master.tar.gz \
+  | tar -xz --strip-components=1 -C "$ash"
+ls "$ash/tags"    # the categories: pick the one that matches the need
+```
+
+Then list that category's apps, most starred first:
+
+```bash
+tag="Bookmarks and Link Sharing"   # the name: line of the category's file in tags/
+for f in $(grep -l -- "- $tag\$" "$ash"/software/*.yml); do
+  awk -v app="$(basename "$f" .yml)" '
+    /^stargazers_count:/ {stars = $2}
+    /^updated_at:/       {updated = $2}
+    /^  - Docker$/       {docker = "docker"}
+    /^archived: true/    {note = note " archived"}
+    /^depends_3rdparty: true/ {note = note " needs-3rd-party"}
+    END {printf "%s\t%s\t%s\t%s\t%s\n", stars, app, updated, (docker ? docker : "-"), note}' "$f"
+done | sort -rn | head -15
+```
+
+Keep only apps that list `Docker`, are not archived, were updated within about six months, and do not need a third-party service. Read the shortlisted apps' own docs for what the list does not say: the containers and database they need, how the first admin is made, and whether they have phone or desktop apps. Apps with their own clients need an auth mode other than `org` on some hostname: see the starters README's auth table.
+
+Offer two or three candidates in one message. For each, give what it is best at and what it costs to run: containers, database, memory, and the auth trade-off. Recommend one and say why, and let the person choose. A simple app that meets the need usually beats the one with the most features.
 
 ## Build a starter
 
