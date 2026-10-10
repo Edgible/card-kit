@@ -9,12 +9,14 @@ The YAML file holds what only a person knows:
     what: The apps, the places, and the choices made, such as the auth mode.
     data: Where the data lives.
     edit: What to set in card.env.
-    start: Anything after `up --wait`, such as making the admin before Publish.
+    start: Anything after `up --wait`, such as why the admin is made before Publish.
+    after-prepare: What prepare.sh prints, and anything left for a person to do.
     verify:
       gitea: What the check proves, and the first sign-in.
     docs: [Gitea, https://docs.gitea.com]
 
-Everything else comes from card.yml and the Compose files, the same way on every card:
+When the card has prepare.sh, Start runs it and shows it. Everything else comes from
+card.yml and the Compose files, the same way on every card:
 How (Fetch, Edit card.env, Check, Start, Publish), each app's Verify check by its auth
 mode, Tear down, and the sizing sentence in What, from places:. Fetch reads from the
 repo named by --repo (cards or starters).
@@ -59,6 +61,16 @@ def main(argv: list[str]) -> int:
     name = d.resolve().name
     card = yaml.safe_load((d / "card.yml").read_text())
     spec = yaml.safe_load(args.spec.read_text())
+
+    # prepare.sh is what runs between Start and Publish. test-card runs the same file,
+    # so the README shows it in full rather than a copy that could drift.
+    prepare_block = ""
+    if (d / "prepare.sh").is_file():
+        script = (d / "prepare.sh").read_text().strip()
+        prepare_block = (f"\n\n{FENCE}bash\nsh {name}/prepare.sh\n{FENCE}\n\n"
+                         f"[prepare.sh](prepare.sh) is:\n\n{FENCE}sh\n{script}\n{FENCE}")
+        if spec.get("after-prepare"):
+            prepare_block += "\n\n" + spec["after-prepare"].strip()
     try:
         detected = "starters" if "starters" in Path("/repo/.git/config").read_text() else "cards"
     except OSError:
@@ -200,7 +212,7 @@ It fills each empty secret and moves a taken port, as lines to paste. Run it aga
 
 {start_block}
 
-`--wait` returns when each service is running, and healthy when it has a healthcheck. {spec.get('start', '').strip()}
+`--wait` returns when each service is running, and healthy when it has a healthcheck. {spec.get('start', '').strip()}{prepare_block}
 
 ### 5. Publish
 

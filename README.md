@@ -16,6 +16,7 @@ A card is a directory whose name is the card's name. In a cards or starters repo
 | `README.md` | How to run the card, under five headings: Why, What, How, Verify, and Tear down. |
 | `card.env` | Machine settings, read by the Compose file. Secrets are empty in git. |
 | `*compose*.yml` | The Compose files the card runs, next to `card.yml`. |
+| `prepare.sh` | Optional: what runs after Start and before Publish, such as making the admin so no setup page is ever public. See [Prepare](#prepare). |
 | `images/` | Optional pictures drawn from `card.yml` by `card-image`. |
 | `etc/` | Optional sample files the card hands you, such as a PDF or a page. |
 | `test.yml` | Optional: the latest run of the card's lifecycle. Every starter has one. See [Test results](#test-results). |
@@ -33,6 +34,27 @@ Copy the shape from a card like yours and change the names, so every card reads 
 A card holds what depends on Edgible or on another app in the card: hostnames, auth modes, devices, and how the apps reach each other. What is the same on any host belongs to the app: its users, its settings, and how to use it. Link to the app's docs. Do not copy them.
 
 Leave device names, hostnames, organization ids, and passwords out of the README, the Compose files, and `card.env` in git. The schema does not check the README.
+
+## Prepare
+
+Some apps let the first visitor set them up: make the admin, or finish an install wizard. Published first, that is anyone on the internet. Such a card makes it safe before Publish, in `prepare.sh`, a short `sh` script next to `card.yml`. The README's Start step runs it with `sh <card>/prepare.sh` and shows it in full, and `test-card` runs the same file, so what a person runs is what was tested.
+
+It starts the same way in every card, so it runs from anywhere and in a test:
+
+```sh
+#!/bin/sh
+# Prepare for the gitea starter: make the admin.
+# Run it after Start and before Publish, from the directory that holds gitea/:
+#   sh gitea/prepare.sh
+set -eu
+cd "$(dirname "$0")"
+set -a; . ./card.env; set +a
+COMPOSE=${COMPOSE:-docker compose --env-file card.env -f docker-compose.yml}
+
+$COMPOSE exec -T -u git gitea gitea admin user create --admin --username gitadmin ...
+```
+
+Use `$COMPOSE` for every Compose command: `test-card` sets it to the test's own project. Use `-T` with `exec` and `run`, because a test has no terminal. Keep what only a person can do, such as adding their own name to a whitelist, in the README instead.
 
 ## Minimum recommended
 
@@ -158,14 +180,15 @@ git clone https://github.com/Edgible/card-kit ../card-kit
 
 ### card-readme
 
-Writes a card's `README.md`. The parts only a person knows come from a short YAML file; the rest comes from `card.yml` and the Compose files, the same way on every card: How (Fetch, Edit card.env, Check, Start, Publish), each app's Verify check by its auth mode, Tear down, and the sizing sentence in What, from `places:`.
+Writes a card's `README.md`. The parts only a person knows come from a short YAML file; the rest comes from `card.yml` and the Compose files, the same way on every card: How (Fetch, Edit card.env, Check, Start with `prepare.sh` when the card has one, Publish), each app's Verify check by its auth mode, Tear down, and the sizing sentence in What, from `places:`.
 
 ```yaml
 why: The problem the card solves, with a link to the app.
 what: The apps, the places, and the choices made, such as the auth mode.
 data: Where the data lives.
 edit: What to set in card.env.
-start: Anything after `up --wait`, such as making the admin before Publish.
+start: Anything after `up --wait`, such as why the admin is made before Publish.
+after-prepare: What prepare.sh prints, and anything left for a person to do.
 verify:
   gitea: What the check proves, and the first sign-in.
 docs: [Gitea, https://docs.gitea.com]
@@ -217,15 +240,14 @@ It needs only `python3` and Docker, and uses `edgible` when that is installed an
 Tests a card's whole lifecycle on a serving device and writes `test.yml`. Like `check-env`, it checks the machine, so it runs directly with `python3`, from the directory that holds the card, and `run` refuses it.
 
 ```bash
-python3 ../card-kit/test-card.py gitea --device macbookair \
-  --prepare '$COMPOSE exec -T -u git gitea gitea admin user create --admin --username gitadmin ...'
+python3 ../card-kit/test-card.py gitea --device macbookair
 ```
 
 It works on a copy of the card, through the same steps a person follows. Places with no app start after Verify, and `--check NAME=COMMAND` (repeatable) runs a card's own check after that, retrying until it passes or `--check-wait` runs out; `card.env` is exported, and `HOSTNAME_<APP>` holds each published hostname.
 
 1. **Check:** runs `check-env`, fills empty secrets the way `card.env` says, and stops on a conflict.
 2. **Start:** `up --wait`, as its own Compose project (`cardtest-<card>-<file>`), so a test never touches the machine's own containers or volumes.
-3. **Prepare:** an optional command between Start and Publish, such as making the admin so no setup page is ever public. `$COMPOSE` is the test's compose command; `card.env` is exported.
+3. **Prepare:** the card's [`prepare.sh`](#prepare), when it has one. `$COMPOSE` is the test's compose command; `card.env` is exported. `--prepare COMMAND` runs a command in its place.
 4. **Publish:** each app in `card.yml`. A name already taken in the org is published as `test-<name>`, and the existing app is never touched.
 5. **Verify:** each hostname by its auth mode. `none` answers, `org` redirects to the Edgible sign-in, `api-key` answers `401`, and `tcp` connects. `udp` is skipped. It asks Edgible's own nameservers for the address, because resolvers keep a "does not exist" for 15 minutes when a new name is looked up too early.
 6. **Tear down:** deletes the apps it published, and removes the containers and volumes it started, and nothing else.
