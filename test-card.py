@@ -10,7 +10,8 @@ Run it on a serving device, from the directory that holds the card:
 It works on a copy of the card in a temporary directory, through every step a person
 follows in the card's README:
 
-  check-env   fills empty secrets the way card.env says, and stops on a conflict
+  check-env   fills empty secrets the way card.env says, moves a taken host port, and
+              stops on a conflict; Publish and Verify use the moved port
   start       up --wait, as its own Compose project (cardtest-<card>-<file>), so the
               test never touches the machine's own containers or volumes
   (inputs)    test/inputs.env sets values in the copy's card.env that only a person may fill,
@@ -120,6 +121,20 @@ def set_env(env_file: Path, key: str, value: str) -> None:
     text = env_file.read_text()
     if re.search(rf"^{key}=", text, re.M):
         env_file.write_text(re.sub(rf"^{key}=.*$", f"{key}={value}", text, flags=re.M))
+
+
+def env_values(env_file: Path) -> dict[str, str]:
+    """The lines of card.env that set a value, as KEY: value."""
+    return {k: v.strip('"') for k, v in re.findall(r"^([A-Z0-9_]+)=(.*)$", env_file.read_text(), re.M)}
+
+
+def moved_port(app: dict, before: dict[str, str], after: dict[str, str]) -> int:
+    """The host port an app is on once check-env's fixes ran. card.yml names the port and card.env
+    the variable that sets it, so the variable that held the app's port before the fixes is the
+    one to read after them: a fix moves it when that port is taken on this machine."""
+    moved = {after[k] for k, v in before.items()
+             if k.endswith("_PORT") and v == str(app["port"]) and after.get(k, v) != v}
+    return int(moved.pop()) if len(moved) == 1 else app["port"]
 
 
 def secrets(env_file: Path) -> list[str]:
@@ -377,10 +392,23 @@ def main(argv: list[str]) -> int:
     data: dict[Path, float] = {}
 
     try:
-        fixes = sh(f"cd {work} && python3 {CHECK_ENV} {src.name} --commands", check=False).stdout.splitlines()
-        if any(l and not l.startswith("#") and "check-env.py" not in l for l in fixes):
+        before = env_values(env_file)
+        # One fix can reveal the next: host ports are checked only once the Compose file resolves,
+        # which it does not while a required secret is empty. Apply them until none are left.
+        for _ in range(3):
+            fixes = sh(f"cd {work} && python3 {CHECK_ENV} {src.name} --commands", check=False).stdout.splitlines()
+            if not any(l and not l.startswith("#") and "check-env.py" not in l for l in fixes):
+                break
             (work / "fix.sh").write_text("\n".join(fixes[:-1]) + "\n")
             sh(f"cd {work} && sh fix.sh", check=False)
+        # Publish and Verify use the port the containers are on, not the one card.yml names.
+        after = env_values(env_file)
+        for app in apps:
+            port = moved_port(app, before, after)
+            if port != app["port"]:
+                notes.append(f"{app['name']}'s port {app['port']} was taken on the test machine, "
+                             f"so it was tested on {port}.")
+                app["port"] = port
         report = sh(f"cd {work} && python3 {CHECK_ENV} {src.name}", check=False).stdout
         conflicts = [l for l in report.splitlines()
                      if "conflict " in l and not re.search(r"app \S+ already exists", l)]

@@ -86,7 +86,9 @@ def main(argv: list[str]) -> int:
         else:
             reason = ""
         if not reason:
-            print(f"== {name}: skip, still {entry['result']} on Edgible {cli} with these files", flush=True)
+            # With --only, a card not named may have no status yet.
+            why = "not asked for" if args.only else f"still {entry['result']} on Edgible {cli} with these files"
+            print(f"== {name}: skip, {why}", flush=True)
             continue
 
         print(f"== {name}: test, because {reason}", flush=True)
