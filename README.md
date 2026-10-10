@@ -19,6 +19,7 @@ A card is a directory whose name is the card's name. In a cards or starters repo
 | `prepare.sh` | Optional: what runs after Start and before Publish, such as making the admin so no setup page is ever public. See [Prepare](#prepare). |
 | `images/` | Optional pictures drawn from `card.yml` by `card-image`. |
 | `etc/` | Optional sample files the card hands you, such as a PDF or a page. |
+| `test/` | Optional inputs for `test-card`: values only a person may fill, and the card's own checks. See [Test inputs](#test-inputs). |
 | `test.yml` | Optional: the latest run of the card's lifecycle. Every starter has one. See [Test results](#test-results). |
 
 ## The README
@@ -133,7 +134,7 @@ steps:
     gitea-ssh: pass
   teardown: pass
 duration: 4m12s
-by: agent                    # agent or person
+by: agent                    # agent, person, or ci
 ```
 
 A run can also record what it measured for each place, which is where the numbers in `places:` come from:
@@ -155,6 +156,15 @@ steps:
     runner-online: pass      # the runner registered with Gitea
     workflow-runs: pass      # a workflow ran on it to the end
 ```
+
+### Test inputs
+
+Everything `test-card` needs is in the card, so anyone, or a CI job, runs the same test with no options. Besides `prepare.sh`, which people run too, it is in the card's `test/` directory:
+
+- **`test/inputs.env`** sets values in the test's copy of `card.env`, for the ones only a person may fill: accepting a licence (`MINECRAFT_EULA=TRUE`), or a folder a person picks (`JELLYFIN_MEDIA_DIR=./test-media`, which lands inside the test's copy). Each key must already be a line in `card.env`. It is never a secret; `check-env` generates those.
+- **`test/<name>.sh`** is a check only the card knows how to make, recorded as `<name>` under `checks:`. It runs after Verify with `card.env` exported and `HOSTNAME_<APP>` set to each published hostname, and is retried until it exits 0. Its `curl` reaches each https hostname at the address Edgible's own nameservers give, through a `.curlrc` in `CURL_HOME`, so a resolver that still remembers the name as missing does not fail it. A helper it needs, such as a small Python script, sits beside it in `test/` and is found from `$(dirname "$0")`; only `.sh` files are checks.
+
+`--set` and `--check` add to these from the command line.
 
 Each step is `pass`, `fail`, or `skip`. `check-cards` fails a `test.yml` that gives no Verify result for an app, says `pass` while a step failed, or names a hostname or an address. Like the rest of a card, it leaves out device names, hostnames, and the organization id: `machine` is the operating system, architecture, and Docker version, not the device.
 

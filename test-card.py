@@ -13,12 +13,16 @@ follows in the card's README:
   check-env   fills empty secrets the way card.env says, and stops on a conflict
   start       up --wait, as its own Compose project (cardtest-<card>-<file>), so the
               test never touches the machine's own containers or volumes
+  (inputs)    test/inputs.env sets values in the copy's card.env that only a person may fill,
+              such as accepting a licence
   prepare     the card's prepare.sh, if it has one, between Start and Publish, such as
               making the admin; --prepare replaces it
   publish     each app in card.yml; a name already taken in the org is published as
               test-<name>, and the existing app is never touched
   verify      each hostname by its auth mode: none answers, org redirects to the Edgible
               sign-in, api-key answers 401, tcp connects; udp is skipped
+  checks      the card's test/<name>.sh, after Verify and after places with no app have
+              started, each retried until it passes or --check-wait runs out
   teardown    deletes the apps it published and removes the containers and volumes it
               started, and nothing else
 
@@ -115,6 +119,20 @@ def set_env(env_file: Path, key: str, value: str) -> None:
     text = env_file.read_text()
     if re.search(rf"^{key}=", text, re.M):
         env_file.write_text(re.sub(rf"^{key}=.*$", f"{key}={value}", text, flags=re.M))
+
+
+def secrets(env_file: Path) -> list[str]:
+    """The values of card.env lines that check-env generates: those under a `Generate with:` comment."""
+    out, generated = [], False
+    for line in env_file.read_text().splitlines():
+        if line.startswith("#"):
+            generated = generated or "Generate with:" in line
+            continue
+        key, _, value = line.partition("=")
+        if generated and len(value.strip('"')) >= 6:
+            out.append(value.strip('"'))
+        generated = False
+    return out
 
 
 def org_label() -> str:
@@ -284,7 +302,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
                     help="set a card.env value in the test's copy, for one only a person may fill, such as "
                          "accepting a licence; repeat for more")
-    ap.add_argument("--by", choices=["agent", "person"], default="person")
+    ap.add_argument("--by", choices=["agent", "person", "ci"], default="person")
     ap.add_argument("--gpu", choices=["none", "optional", "required"], default="none",
                     help="the gpu value in the suggested places:")
     ap.add_argument("--write-places", action="store_true", help="write the suggested places: into card.yml")
@@ -308,9 +326,19 @@ def main(argv: list[str]) -> int:
     for key in re.findall(r"^((?:[A-Z0-9_]+_)?DEVICE)=", env_file.read_text(), re.M):
         set_env(env_file, key, args.device)
     set_env(env_file, "ORG_LABEL", label)
-    for pair in args.set:
+    # test/inputs.env holds values only a person may fill, such as accepting a licence, for the
+    # test's copy. --set adds to it and wins over it.
+    test_env = card / "test" / "inputs.env"
+    pairs = [l for l in test_env.read_text().splitlines() if l.strip() and not l.startswith("#")] \
+        if test_env.is_file() else []
+    for pair in pairs + args.set:
         key, _, value = pair.partition("=")
+        if not re.search(rf"^{key}=", env_file.read_text(), re.M):
+            print(f"{key} is not a line in card.env", file=sys.stderr)
+            return 2
         set_env(env_file, key, value)
+    # test/<name>.sh are the card's own checks; --check adds more.
+    checks = [f"{f.stem}=sh {f}" for f in sorted((card / "test").glob("*.sh"))] + args.check
     apps = read_apps(card / "card.yml")
     composes = sorted(card.glob("*compose*.yml"))
     places = read_places(card / "card.yml")
@@ -323,7 +351,12 @@ def main(argv: list[str]) -> int:
     project = f"cardtest-{src.name}"
     projects = {f: f"{project}-{f.stem}" for f in composes}
     dc = lambda f, rest: f"docker compose -p {projects[f]} --env-file {env_file} -f {f} {rest}"
-    hide = lambda s: s.replace(label, "<org>")
+    def hide(s: str) -> str:
+        """What a test prints may be public, such as a CI log: no org label, access id, or secret."""
+        s = re.sub(r"(application-access/)[\w-]+", r"\1<id>", s.replace(label, "<org>"))
+        for secret in secrets(env_file):
+            s = s.replace(secret, "<secret>")
+        return s
     steps: dict = {"check-env": "fail", "start": "skip", "publish": "skip", "verify": {}, "teardown": "skip"}
     notes, published, started_compose = [], [], False
     sampler = Sampler(list(projects.values()))
@@ -400,7 +433,17 @@ def main(argv: list[str]) -> int:
 
         hostnames = " ".join(f"HOSTNAME_{a['name'].upper().replace('-', '_')}={listing[n]['hostnames'][0]}"
                              for a, n in published)
-        for check in args.check:
+        # A check's curl uses this machine's resolver, which may still remember a hostname as not
+        # existing. A .curlrc in CURL_HOME gives curl each address from Edgible's own nameservers.
+        resolves = []
+        for a, n in published:
+            host = listing[n]["hostnames"][0]
+            ip = authoritative_ip(host)
+            if ip and a.get("protocol", "https") == "https":
+                resolves.append(f"resolve = {host}:443:{ip}")
+        (work / ".curlrc").write_text("\n".join(resolves) + "\n")
+        hostnames += f" CURL_HOME={work}"
+        for check in checks:
             name, _, command = check.partition("=")
             steps.setdefault("checks", {})[name] = "fail"
             deadline, out = time.time() + args.check_wait, ""
