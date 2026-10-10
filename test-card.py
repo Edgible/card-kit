@@ -393,8 +393,12 @@ def main(argv: list[str]) -> int:
 
     try:
         before = env_values(env_file)
-        fixes = sh(f"cd {work} && python3 {CHECK_ENV} {src.name} --commands", check=False).stdout.splitlines()
-        if any(l and not l.startswith("#") and "check-env.py" not in l for l in fixes):
+        # One fix can reveal the next: host ports are checked only once the Compose file resolves,
+        # which it does not while a required secret is empty. Apply them until none are left.
+        for _ in range(3):
+            fixes = sh(f"cd {work} && python3 {CHECK_ENV} {src.name} --commands", check=False).stdout.splitlines()
+            if not any(l and not l.startswith("#") and "check-env.py" not in l for l in fixes):
+                break
             (work / "fix.sh").write_text("\n".join(fixes[:-1]) + "\n")
             sh(f"cd {work} && sh fix.sh", check=False)
         # Publish and Verify use the port the containers are on, not the one card.yml names.
