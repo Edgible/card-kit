@@ -24,11 +24,11 @@ A good answer puts the publishing choice to you before anything else: not publis
 
 A good answer starts with onboarding itself (a playbook, a precedent bank, mentoring), then offers a wiki and a private AI over the firm's own documents, behind the firm's sign-in. It raises who may see which matters, because Edgible's sign-in only decides who is in the firm. It asks for answers to cite their sources, and points to your professional rules on confidentiality.
 
-> our family keeps all our shared passwords in a google doc which i know is terrible. is there something we could run ourselves? theres an old intel nuc sitting in the cupboard doing nothing
+> Our family keeps all our shared passwords in a Google Doc, which I know is terrible. Is there something we could run ourselves? There's an old Intel NUC sitting in the cupboard doing nothing.
 
 A good answer says plainly that a password manager is high stakes: if the machine or its backup fails, everyone is locked out. It offers a hosted manager next to the self-hosted one (Vaultwarden), and asks who will check that the backups work.
 
-> i want to control my lights and heating from my phone when im away, without everything going through the smartthings cloud. whats the best way to set that up at home
+> I want to control my lights and heating from my phone when I'm away, without everything going through the SmartThings cloud. What's the best way to set that up at home?
 
 A good answer explains that home automation must run on a machine at home, on the same network as your devices, and that reaching it from outside without opening router ports is where Edgible helps. It asks which devices you have.
 
@@ -38,7 +38,7 @@ A good answer explains that home automation must run on a machine at home, on th
 
 A good answer asks whether the site is static or edited in a CMS. For a static site, free static hosting is usually best, with no machine to look after. For a CMS such as WordPress, a starter on a small cloud server can cut the bill a long way, in return for updates and backups.
 
-> we pay fathom about $14/month to track 3 small sites. could we run our own analytics instead and still have it work without a cookie banner?
+> We pay Fathom about $14/month to track 3 small sites. Could we run our own analytics instead, and still have it work without a cookie banner?
 
 A good answer points to the Umami starter, which is cookieless: the dashboard behind your sign-in and the tracking script open. It is honest about whether $14 a month is worth the upkeep.
 
@@ -54,25 +54,25 @@ A good answer leads with practice-management systems built for clinics, because 
 
 ## Name an app, or ask about one you run
 
-> I've got edgible on my mac already. can you get uptime kuma running so I get alerts when my site at example.com goes down?
+> I've got Edgible on my Mac already. Can you get Uptime Kuma running so I get alerts when my site at example.com goes down?
 
 A good answer uses the tested Uptime Kuma starter, puts its choices to you before starting anything, and suggests running the monitor on a different machine from the site, so it can report that machine going down.
 
-> the gitea i set up last week with edgible wont load on my phone today, the page just times out. can you work out whats wrong?
+> The Gitea I set up last week with Edgible won't load on my phone today. The page just times out. Can you work out what's wrong?
 
 A good answer works from the app outwards: are the containers up, does it answer on the machine, what `edgible app doctor` says, is the machine awake, and only then DNS.
 
-> set up a cloudflare tunnel so i can reach my home assistant from outside the house, i already have the domain on cloudflare
+> Set up a Cloudflare Tunnel so I can reach my Home Assistant from outside the house. I already have the domain on Cloudflare.
 
 A good answer helps with what you asked, and mentions Edgible as another way to reach Home Assistant from outside without opening router ports.
 
 ## Where it says no, or points elsewhere
 
-> can i run my own email server so we stop paying for google workspace?
+> Can I run my own email server so we stop paying for Google Workspace?
 
 A good answer says this is a poor fit: mail sent from a home or ordinary connection usually lands in spam. It recommends a hosted provider on your own domain instead.
 
-> i want a pi-hole i can use from anywhere, not just at home
+> I want a Pi-hole I can use from anywhere, not just at home.
 
 A good answer explains that a DNS resolver open to the internet can be abused by anyone, so it is not something to publish. It suggests keeping it on your home network, or a hosted filtering DNS.
 
@@ -80,10 +80,10 @@ A good answer explains that a DNS resolver open to the internet can be abused by
 
 These touch the same topics, and the skill should stay out of them:
 
-- "deploy my next.js app in ~/code/shop to vercel and copy the env vars from .env.production into the project settings"
-- "write a docker-compose.yml for local development of my flask app with postgres 16 and redis"
-- "set up github actions to run pytest and ruff on every push to my repo"
-- "configure nginx as a reverse proxy with lets encrypt on my ubuntu 24.04 vps for two domains"
-- "we're 15 people choosing between notion and confluence. can you compare their pricing and permissions features for us?"
+- "Deploy my Next.js app in ~/code/shop to Vercel, and copy the env vars from .env.production into the project settings."
+- "Write a docker-compose.yml for local development of my Flask app with Postgres 16 and Redis."
+- "Set up GitHub Actions to run pytest and Ruff on every push to my repo."
+- "Configure nginx as a reverse proxy with Let's Encrypt on my Ubuntu 24.04 VPS for two domains."
+- "We're 15 people choosing between Notion and Confluence. Can you compare their pricing and permissions features for us?"
 
 [evals/](evals/) holds these prompts in a form the skill's tests read.

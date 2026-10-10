@@ -24,63 +24,63 @@
     "should_trigger": true
   },
   {
-    "query": "our family keeps all our shared passwords in a google doc which i know is terrible. is there something we could run ourselves? theres an old intel nuc sitting in the cupboard doing nothing",
+    "query": "Our family keeps all our shared passwords in a Google Doc, which I know is terrible. Is there something we could run ourselves? There's an old Intel NUC sitting in the cupboard doing nothing.",
     "should_trigger": true
   },
   {
-    "query": "i want to control my lights and heating from my phone when im away, without everything going through the smartthings cloud. whats the best way to set that up at home",
+    "query": "I want to control my lights and heating from my phone when I'm away, without everything going through the SmartThings cloud. What's the best way to set that up at home?",
     "should_trigger": true
   },
   {
-    "query": "we pay fathom about $14/month to track 3 small sites. could we run our own analytics instead and still have it work without a cookie banner?",
+    "query": "We pay Fathom about $14/month to track 3 small sites. Could we run our own analytics instead, and still have it work without a cookie banner?",
     "should_trigger": true
   },
   {
-    "query": "I've got edgible on my mac already. can you get uptime kuma running so I get alerts when my site at example.com goes down?",
+    "query": "I've got Edgible on my Mac already. Can you get Uptime Kuma running so I get alerts when my site at example.com goes down?",
     "should_trigger": true
   },
   {
-    "query": "the gitea i set up last week with edgible wont load on my phone today, the page just times out. can you work out whats wrong?",
+    "query": "The Gitea I set up last week with Edgible won't load on my phone today. The page just times out. Can you work out what's wrong?",
     "should_trigger": true
   },
   {
-    "query": "deploy my next.js app in ~/code/shop to vercel and copy the env vars from .env.production into the project settings",
+    "query": "Deploy my Next.js app in ~/code/shop to Vercel, and copy the env vars from .env.production into the project settings.",
     "should_trigger": false
   },
   {
-    "query": "set up a cloudflare tunnel so i can reach my home assistant from outside the house, i already have the domain on cloudflare",
+    "query": "Set up a Cloudflare Tunnel so I can reach my Home Assistant from outside the house. I already have the domain on Cloudflare.",
     "should_trigger": true
   },
   {
-    "query": "how do i back up my macbook to an external drive with time machine and also keep an offsite copy in backblaze?",
+    "query": "How do I back up my MacBook to an external drive with Time Machine, and also keep an offsite copy in Backblaze?",
     "should_trigger": false
   },
   {
-    "query": "docker desktop on my mac keeps saying 'cannot connect to the docker daemon at unix:///var/run/docker.sock'. how do i fix it?",
+    "query": "Docker Desktop on my Mac keeps saying 'Cannot connect to the Docker daemon at unix:///var/run/docker.sock'. How do I fix it?",
     "should_trigger": false
   },
   {
-    "query": "write a docker-compose.yml for local development of my flask app with postgres 16 and redis, with a volume for the db and hot reload for the app",
+    "query": "Write a docker-compose.yml for local development of my Flask app with Postgres 16 and Redis, with a volume for the database and hot reload for the app.",
     "should_trigger": false
   },
   {
-    "query": "our wordpress site on wp engine got really slow after the last plugin update. query monitor shows 400 queries on the home page. what should i look at first?",
+    "query": "Our WordPress site on WP Engine got really slow after the last plugin update. Query Monitor shows 400 queries on the home page. What should I look at first?",
     "should_trigger": false
   },
   {
-    "query": "set up github actions to run pytest and ruff on every push to my repo, with a cache for pip",
+    "query": "Set up GitHub Actions to run pytest and Ruff on every push to my repo, with a cache for pip.",
     "should_trigger": false
   },
   {
-    "query": "configure nginx as a reverse proxy with lets encrypt on my ubuntu 24.04 vps for two domains, api.example.com and app.example.com",
+    "query": "Configure nginx as a reverse proxy with Let's Encrypt on my Ubuntu 24.04 VPS for two domains, api.example.com and app.example.com.",
     "should_trigger": false
   },
   {
-    "query": "my postgres query on RDS takes 30 seconds. here's the EXPLAIN ANALYZE output, can you tell me which index to add?",
+    "query": "My Postgres query on RDS takes 30 seconds. Here's the EXPLAIN ANALYZE output. Can you tell me which index to add?",
     "should_trigger": false
   },
   {
-    "query": "we're 15 people choosing between notion and confluence. can you compare their pricing and permissions features for us?",
+    "query": "We're 15 people choosing between Notion and Confluence. Can you compare their pricing and permissions features for us?",
     "should_trigger": false
   }
 ]
