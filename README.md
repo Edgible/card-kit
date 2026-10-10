@@ -258,7 +258,7 @@ python3 ../card-kit/test-card.py gitea --device macbookair
 
 It works on a copy of the card, through the same steps a person follows. Places with no app start after Verify, and `--check NAME=COMMAND` (repeatable) runs a card's own check after that, retrying until it passes or `--check-wait` runs out; `card.env` is exported, and `HOSTNAME_<APP>` holds each published hostname.
 
-1. **Check:** runs `check-env`, fills empty secrets the way `card.env` says, and stops on a conflict.
+1. **Check:** runs `check-env`, fills empty secrets the way `card.env` says, moves a taken host port, and stops on a conflict. Publish and Verify use the moved port, not the one in `card.yml`.
 2. **Start:** `up --wait`, as its own Compose project (`cardtest-<card>-<file>`), so a test never touches the machine's own containers or volumes.
 3. **Prepare:** the card's [`prepare.sh`](#prepare), when it has one. `$COMPOSE` is the test's compose command; `card.env` is exported. `--prepare COMMAND` runs a command in its place.
 4. **Publish:** each app in `card.yml`. A name already taken in the org is published as `test-<name>`, and the existing app is never touched.
