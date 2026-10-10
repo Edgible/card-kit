@@ -240,7 +240,7 @@ python3 check-env.py website
 python3 check-env.py website -f kuma-compose.yml
 ```
 
-Compose resolves each file with `card.env`, so the ports and names it checks are the ones `docker compose up` would use. When `card.yml` has `places:`, a Sizing section compares them with the machine: memory and CPU type from `docker info`, free disk where Docker keeps its data, and the architectures each image is published for. A shortfall is a warning, never a conflict. It looks for empty required values, host ports already in use, container names already taken, Compose project names used by another file, volumes left by an earlier run, `DEVICE` values that match no device, and Edgible apps with the same name. Each conflict prints a remedy.
+Compose resolves each file with `card.env`, so the ports and names it checks are the ones `docker compose up` would use. When `card.yml` has `places:`, a Sizing section compares them with the machine: memory and CPU type from `docker info`, free disk where Docker keeps its data, and the architectures each image is published for. A shortfall is a warning, never a conflict. It looks for empty required values, host ports already in use, container names already taken, Compose project names used by another file, volumes left by an earlier run, `DEVICE` values that match no device, and Edgible apps with the same name. Each conflict prints a remedy. `--project-prefix <prefix>` checks each Compose file as project `<prefix><file stem>` instead of its `name:`, as `test-card` runs it.
 
 A Notes section adds what is worth knowing but is not a problem: a service the card starts that already runs elsewhere on the machine, an image tag such as `latest` that moves with each release, and where each service's healthcheck comes from. Notes never count as conflicts or warnings.
 
@@ -258,7 +258,7 @@ python3 ../card-kit/test-card.py gitea --device macbookair
 
 It works on a copy of the card, through the same steps a person follows. Places with no app start after Verify, and `--check NAME=COMMAND` (repeatable) runs a card's own check after that, retrying until it passes or `--check-wait` runs out; `card.env` is exported, and `HOSTNAME_<APP>` holds each published hostname.
 
-1. **Check:** runs `check-env`, fills empty secrets the way `card.env` says, moves a taken host port, and stops on a conflict. Publish and Verify use the moved port, not the one in `card.yml`.
+1. **Check:** runs `check-env` with `--project-prefix`, so it checks the test's own Compose projects and a copy of the card already running on the machine is no conflict. It fills empty secrets the way `card.env` says, moves a taken host port, and stops on a conflict. Publish and Verify use the moved port, not the one in `card.yml`.
 2. **Start:** `up --wait`, as its own Compose project (`cardtest-<card>-<file>`), so a test never touches the machine's own containers or volumes.
 3. **Prepare:** the card's [`prepare.sh`](#prepare), when it has one. `$COMPOSE` is the test's compose command; `card.env` is exported. `--prepare COMMAND` runs a command in its place.
 4. **Publish:** each app in `card.yml`. A name already taken in the org is published as `test-<name>`, and the existing app is never touched.

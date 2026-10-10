@@ -396,7 +396,7 @@ def main(argv: list[str]) -> int:
         # One fix can reveal the next: host ports are checked only once the Compose file resolves,
         # which it does not while a required secret is empty. Apply them until none are left.
         for _ in range(3):
-            fixes = sh(f"cd {work} && python3 {CHECK_ENV} {src.name} --commands", check=False).stdout.splitlines()
+            fixes = sh(f"cd {work} && python3 {CHECK_ENV} {src.name} --project-prefix {project}- --commands", check=False).stdout.splitlines()
             if not any(l and not l.startswith("#") and "check-env.py" not in l for l in fixes):
                 break
             (work / "fix.sh").write_text("\n".join(fixes[:-1]) + "\n")
@@ -409,7 +409,7 @@ def main(argv: list[str]) -> int:
                 notes.append(f"{app['name']}'s port {app['port']} was taken on the test machine, "
                              f"so it was tested on {port}.")
                 app["port"] = port
-        report = sh(f"cd {work} && python3 {CHECK_ENV} {src.name}", check=False).stdout
+        report = sh(f"cd {work} && python3 {CHECK_ENV} {src.name} --project-prefix {project}-", check=False).stdout
         conflicts = [l for l in report.splitlines()
                      if "conflict " in l and not re.search(r"app \S+ already exists", l)]
         if conflicts:
