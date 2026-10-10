@@ -259,11 +259,13 @@ When nothing fits, offer to build a starter. First check the starters README's *
 
 Offer this, and do it only with the person's yes.
 
+Each repo's `CONTRIBUTING.md` is the process: [Edgible/starters](https://github.com/Edgible/starters/blob/main/CONTRIBUTING.md) for a starter, [Edgible/cards](https://github.com/Edgible/cards/blob/main/CONTRIBUTING.md) for a card. Read it and follow it. Where it differs from what is written here, it wins. In short:
+
 - **Scrub before anything leaves the machine.** Remove device names, hostnames, the organization id, secrets, and the person's own domain from every file. `check-cards` catches some of them, and you check the rest.
 - **Check the name is free:** a 404 from `gh api repos/Edgible/starters/contents/<name>` means it is.
 - **Use a fork** unless the person can push to the Edgible repo: `gh repo fork Edgible/starters --clone`. Work on a branch, and never push to `main`.
-- **Open the pull request** with `test.yml` from the passing run and the starters README's **Reviewing a starter** checklist, each item filled in for what you checked.
-- **If you could not make it pass,** do not open a pull request. Offer an issue instead, "Starter request: <app>", with what you tried and where it failed.
+- **Fill in the repo's pull request template.** Read `.github/PULL_REQUEST_TEMPLATE.md`, write its sections into the body with the `result:` lines of the passing `test-card` run, tick only the checklist items you actually checked, and tick the box that says an AI agent made it. Pass that as `gh pr create --body-file`.
+- **If you could not make it pass,** do not open a pull request. Offer an issue from the repo's request template instead: read `.github/ISSUE_TEMPLATE/starter-request.md` (or `card-request.md` in cards), fill in its sections with what you tried and where it failed, and run `gh issue create --title "Starter request: <app>" --label starter-request --body-file <file>`.
 
 A maintainer tests a new starter on their own device before merging. Once merged, the nightly regression keeps testing it.
 
