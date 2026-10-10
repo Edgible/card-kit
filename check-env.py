@@ -14,7 +14,9 @@ It looks for host ports already taken, container names already taken, Compose
 project names already used by other files, leftover volumes, serving devices
 that do not match, and Edgible applications with the same name. Each conflict
 prints a remedy. A container, project, or volume from the same Compose file is
-this card already running, and is not a conflict.
+this card already running, and is not a conflict. --project-prefix checks the
+projects test-card starts, cardtest-<card>-<file stem>, so a copy of the card
+already running on the machine is no conflict for a test.
 
 A Notes section tells what is worth knowing but is not a problem: a service that
 already runs elsewhere on this machine, an image tag such as latest that moves
@@ -298,12 +300,14 @@ def edgible_lists() -> tuple[list | None, dict, str]:
 
 
 def compose_config(
-    compose: Path, env_file: Path, placeholders: dict[str, str] | None = None
+    compose: Path, env_file: Path, placeholders: dict[str, str] | None = None, prefix: str = ""
 ) -> tuple[dict | None, str]:
-    """The file as Compose resolves it. placeholders fill empty values; the shell environment wins over --env-file."""
+    """The file as Compose resolves it. placeholders fill empty values; the shell environment wins over --env-file.
+    With a prefix, the project is <prefix><file stem>, as test-card runs it, instead of the file's name:."""
     proc = subprocess.run(
         [
             "docker", "compose",
+            *(["-p", prefix + compose.stem] if prefix else []),
             "--env-file", str(env_file),
             "-f", str(compose),
             "config", "--format", "json",
@@ -491,7 +495,8 @@ RISKY = [
 
 
 def notes(
-    report: Report, files: list[Path], env_file: Path, env: dict[str, str], containers: list[dict]
+    report: Report, files: list[Path], env_file: Path, env: dict[str, str], containers: list[dict],
+    prefix: str = "",
 ) -> None:
     """Information for whoever runs the card. It changes no exit code and no remedy.
 
@@ -502,7 +507,7 @@ def notes(
     resolved = []
     for compose in files:
         empty = {v: "placeholder" for v in REQUIRED_VAR.findall(compose.read_text()) if not env.get(v)}
-        config, _ = compose_config(compose, env_file, empty)
+        config, _ = compose_config(compose, env_file, empty, prefix)
         if config is not None:
             resolved.append((compose, config))
     ours = {config["name"] for _, config in resolved}
@@ -572,6 +577,11 @@ def main(argv: list[str]) -> int:
         "--commands", action="store_true",
         help="print only the remedies, as lines to paste into a shell",
     )
+    parser.add_argument(
+        "--project-prefix", default="",
+        help="check each file as Compose project <prefix><file stem>, as test-card runs it, "
+             "instead of the file's top-level name:",
+    )
     args = parser.parse_args(argv)
 
     card = args.card.resolve()
@@ -604,7 +614,7 @@ def main(argv: list[str]) -> int:
     resolved: list[tuple[Path, dict]] = []
     asked: set[str] = set()
     for compose in files:
-        config, error = compose_config(compose, env_file)
+        config, error = compose_config(compose, env_file, prefix=args.project_prefix)
         # Compose stops at the first empty value, so list every required one here.
         # Only when Compose fails: a required value inside a default that is not used,
         # such as ${URL:-https://app.${ORG_LABEL:?}.edgible.com} with URL set, is not needed.
@@ -883,7 +893,7 @@ def main(argv: list[str]) -> int:
                 )
 
     sizing(report, card_yml, files, env_file, env)
-    notes(report, files, env_file, env, containers)
+    notes(report, files, env_file, env, containers, args.project_prefix)
 
     rerun = shlex.join(["python3", sys.argv[0], *[a for a in argv if a != "--commands"]])
     has_remedy = any(
