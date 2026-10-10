@@ -1,0 +1,100 @@
+# Held-out prompts for the edgible-cards skill: answers are scored against these, and the skill
+# is never tuned to them. Most are real prompts, as typed. `expect` is what a good answer does;
+# `must_not` is what fails it outright. EXAMPLES.md shows the same prompts for people.
+
+- id: tennis-club
+  prompt: "I do the IT stuff for the commitee of a small surbant tennis club. we want a way to make it easy for our members to self organise and schedule tennis games on our courts. I havent found a prdouct that does this thats free. Help!"
+  expect:
+    - checks the tennis association's own booking platform, and free options with no server
+    - recommends a resource-booking app (LibreBooking), not appointment or hotel booking
+    - member accounts on auth mode none, sign-up closed or approved; explains members are not in the Edgible organization
+    - a small cloud server rather than a volunteer's computer
+    - asks who looks after it when the volunteer steps down
+  must_not:
+    - recommend cal.diy, qloapps, or another app for a different job
+    - put the booking app behind org
+    - build anything before the person chooses
+
+- id: physio-clinic
+  prompt: "I run a small physiotherapy clinic with 3 physios. We'd like patients to book appointments online and see their exercise plans between visits. The tools we've looked at are expensive. What are our options?"
+  expect:
+    - leads with practice-management tools built for clinics
+    - treats exercise plans as patient health records, regulated data
+    - self-hosting at most for the parts without patient records
+    - asks which country, for the privacy rules
+  must_not:
+    - offer to self-host patient records on a clinic or home machine
+    - leave out privacy and compliance
+
+- id: sensitive-photos
+  prompt: "ive got lots of photos some which have sensitive material that i dont want to risk on the cloud, is there a way to manage this safely and privately?"
+  expect:
+    - offers the exposure choices first - not published, org for the web, or none with a strong login
+    - disk encryption and an encrypted off-site backup
+    - asks where the photos must be reachable from
+  must_not:
+    - deploy the immich starter on none without raising the choice
+    - suggest a cloud server without asking, since the person wants the photos off the cloud
+
+- id: maritime-law-firm
+  prompt: "I am running a small boutique law firm that specializes in maritime law. Over time we have built a valuable asset of cases and best practices. we need to onboard some new layweres and we want a way to help them leverage this body of knowledge. Help!"
+  expect:
+    - onboarding itself - playbook, precedent bank, mentoring
+    - self-hosting as a leading option, for confidentiality, behind org
+    - who sees which matters is set inside the apps (ethical walls)
+    - AI answers cite sources and a lawyer checks them
+    - points to professional rules on confidentiality and AI
+  must_not:
+    - one shared AI knowledge base with no access rules
+    - only hosted suggestions, with no mention of confidentiality
+
+- id: pocket-shutdown
+  prompt: "Pocket is shutting down and I've got years of saved articles in it. I don't want to hand them to another company that might do the same thing. I'd like to keep reading them on my phone and laptop, and maybe share a few links with my team. I've got an old Mac mini that's always on."
+  expect:
+    - two or three bookmark apps that keep page copies, with a recommendation
+    - phone apps cannot pass org - web on org, apps on the app's own login
+    - asks about importing from Pocket
+  must_not:
+    - build anything before the person chooses
+
+- id: marketing-site-cost
+  prompt: "its costing me $40/month to host my small markering website on squarespace. is there a better way?"
+  expect:
+    - asks whether the site is static or edited in a CMS
+    - free static hosting for a static site
+    - the wordpress starter on a small cloud server for a CMS, with the upkeep stated
+  must_not:
+    - push self-hosting for a static site
+
+- id: s3-members-area
+  prompt: "ive got a static website on aws s3, but i want to add a sign-in feature to show some restricted content and offerings. how can i do this?"
+  expect:
+    - says hiding pages with JavaScript is not protection; content must be served by something that checks the sign-in
+    - asks who signs in - invited people or the public
+    - offers AWS-native, hosted, and self-hosted (the accounts card) options
+  must_not:
+    - claim client-side hiding is secure
+
+- id: dementia-startup
+  prompt: "I'm a founder of a new startup. we want to help people with dementia store and recall important memories. we want to build a prototype. are there some tools out there that can help us get started?"
+  expect:
+    - answers the founder's question first - prototyping, user research, rules for health data and consent
+    - self-hosted building blocks only as one option, for a prototype with test or consented data
+    - real patient data needs compliant hosting and advice
+  must_not:
+    - lead with Edgible
+    - suggest real patient data on a home machine
+
+- id: negative-react-error
+  prompt: "Fix this TypeError in my React app: Cannot read properties of undefined (reading 'map') in ProductList.jsx line 14"
+  expect:
+    - the skill does not load
+  must_not:
+    - mention self-hosting or Edgible
+
+- id: negative-landlord-email
+  prompt: "Write an email to my landlord asking them to fix the leaking tap in the kitchen, it's been two weeks"
+  expect:
+    - the skill does not load
+  must_not:
+    - mention self-hosting or Edgible
