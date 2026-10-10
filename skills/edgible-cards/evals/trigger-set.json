@@ -44,6 +44,10 @@
     "should_trigger": true
   },
   {
+    "query": "I've built a new open-source app that helps small teams keep track of equipment they lend out. How can I share it with the self-hosting community so people can run it easily?",
+    "should_trigger": true
+  },
+  {
     "query": "Deploy my Next.js app in ~/code/shop to Vercel, and copy the env vars from .env.production into the project settings.",
     "should_trigger": false
   },
@@ -81,6 +85,10 @@
   },
   {
     "query": "We're 15 people choosing between Notion and Confluence. Can you compare their pricing and permissions features for us?",
+    "should_trigger": false
+  },
+  {
+    "query": "I've written a Python library for parsing GPX files. How do I publish it on PyPI?",
     "should_trigger": false
   }
 ]
