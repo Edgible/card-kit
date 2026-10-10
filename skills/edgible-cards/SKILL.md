@@ -9,7 +9,7 @@ A **starter** is one self-hosted app, tested end to end on a real Edgible servin
 
 Work from a starter or card whenever one fits. Its README is a tested path, and following it gives the same result for everyone. Improvise only where the card leaves a choice open, and say so when you do.
 
-When the person has a problem and has not asked to self-host, start with [When to suggest it](#when-to-suggest-it). Steps 1 to 5 set an app up. [After it is running](#after-it-is-running) covers everything after that: what is running, whether it works, fixing it, signing in, changing it, pausing, backing up, upgrading, moving, and removing it.
+Most people describe a need, not an app. Start with [Understand the need](#understand-the-need), which reads [needs-map.yaml](needs-map.yaml) next to this file, and, when they have not asked to self-host, [When to suggest it](#when-to-suggest-it). A person who names an app goes straight to [Find](#1-find). Steps 1 to 5 set an app up. [After it is running](#after-it-is-running) covers everything after that: what is running, whether it works, fixing it, signing in, changing it, pausing, backing up, upgrading, moving, and removing it.
 
 ## When to suggest it
 
@@ -23,7 +23,7 @@ The person may describe a problem, not a request to self-host: a hosting bill, a
 
 1. Answer the question they asked, with the options side by side: hosted, and self-hosted with Edgible. If one detail decides it, ask that one question.
 2. For self-hosting, be plain about what it costs: they keep the app updated and backed up, it is down while the machine is, and it uses that machine's power and bandwidth.
-3. Name what Edgible would run: a starter or card if one fits ([Find](#1-find)), or the shortlist from [Choose an app](#choose-an-app).
+3. Name what Edgible would run, from the need's entry in the needs map: its starter or card if one fits ([Find](#1-find)), or the shortlist from [Choose an app](#choose-an-app). Say what its fit and exposure mean for this person.
 4. Do nothing until the person chooses. If they choose self-hosting, continue at [Find](#1-find).
 
 **Example.** "Hosting my small marketing website costs $40 a month. Is there a better way?"
@@ -42,6 +42,22 @@ Do not suggest self-hosting when the person's problem has nothing to do with run
 - **Run every step the README gives, in order.** Never skip Check. Stop at the first step that fails, and fix it or report it. Do not work around it silently.
 - **Change only `card.env`** for this machine's settings. A change to any other file in a card is a fix: see [Fix a card or card-kit](#fix-a-card-or-card-kit).
 - **Fetch from upstream `main`.** A local clone of a cards or starters repo may be old.
+
+## Understand the need
+
+Skip this step when the person names an app ("self-host Miniflux"). Go to [Find](#1-find).
+
+Otherwise, look the need up in [needs-map.yaml](needs-map.yaml), next to this file. Each entry is an awesome-selfhosted category, with the needs people describe (`jobs`), the services they leave (`replaces`), why they self-host it (`drivers`), how well it suits Edgible (`fit`), how to publish it (`exposure`), what the machine needs, its starters and cards, and the questions that change the answer (`ask`). Match on `jobs` and `replaces`, in the person's words: "Pocket shut down" is Bookmarks and Link Sharing, and "home automation" is Internet of Things (IoT). Read the whole entry.
+
+- **Ask at most two or three questions**, and only ones whose answers change the recommendation: the entry's `ask`, plus how sensitive the data is when a driver is privacy, plus which machine would run it when you do not know. Do not hand the person a questionnaire.
+- **Fit `poor` or `refused`:** say so plainly, with the entry's reason, and recommend what does work, such as a hosted provider, or running it on the home network only. Do not build it.
+- **Fit `good` or `conditional`:** offer it as [When to suggest it](#when-to-suggest-it) says, with the entry's conditions stated.
+- **Sensitive data:** offer the entry's `exposure.sensitive` choices, including not publishing at all, before the default.
+- **No entry matches:** pick the category from awesome-selfhosted's `tags/` instead, as in [Choose an app](#choose-an-app), and reason about fit and exposure the same way.
+
+Then go to [Find](#1-find), with the entry's `starters` and `cards` as the first candidates. If none fits, go to [Choose an app](#choose-an-app) with the entry's category.
+
+When someone asks what Edgible's gateway can see, or where TLS ends, point to Edgible's documentation. Do not answer from memory.
 
 ## 1. Find
 
@@ -71,7 +87,7 @@ If nothing fits:
 Before anything starts, put the card's open choices to the person in one message, with your recommendation for each:
 
 - **Which device runs each place.** `edgible device list` prints the names. One machine can hold every place of a small, trusted setup. Say what the card's README says about keeping places apart.
-- **Each hostname's auth mode**, and what it means: `none` is the open internet, protected only by the app's own login.
+- **Each hostname's auth mode**, and what it means: `none` is the open internet, protected only by the app's own login. When the data is sensitive, offer the needs map's `exposure.sensitive` choices, including not publishing at all, even when the starter uses `none`.
 - **Anything the README marks as a trade-off**, such as a runner with the Docker socket.
 - **Whether it must stay up** after a restart. If so, check the machine first: see [Keep it running](#keep-it-running).
 
@@ -246,7 +262,7 @@ Use this step only when the person described a need and no starter or card meets
 ash=$(mktemp -d)
 curl -fsSL https://github.com/awesome-selfhosted/awesome-selfhosted-data/archive/refs/heads/master.tar.gz \
   | tar -xz --strip-components=1 -C "$ash"
-ls "$ash/tags"    # the categories: pick the one that matches the need
+ls "$ash/tags"    # the categories; the needs map names the category for the needs it covers
 ```
 
 Then list that category's apps, most starred first:
