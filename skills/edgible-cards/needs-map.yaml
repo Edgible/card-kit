@@ -1,0 +1,401 @@
+# The needs map: from what a person says they need to a self-hosted answer on Edgible.
+#
+# People describe a need ("somewhere private for my photos"), not an app. Each entry is one
+# awesome-selfhosted category (https://github.com/awesome-selfhosted/awesome-selfhosted-data,
+# tags/), with what only people know about it:
+#
+#   category   the category's exact name: line in awesome-selfhosted tags/
+#   jobs       how people say the need, in their words. Match on these, not on the category name.
+#   replaces   hosted services people leave for it. A product name is the strongest signal.
+#   drivers    why people self-host it, strongest first: cost, privacy, control, shut-down
+#              (a service that closed or got worse), compliance, local (must run at home)
+#   fit        good, conditional, poor, or refused, for Edgible: a machine you own, published
+#              through Edgible's gateway. why says what decides it.
+#   exposure   how to publish it. default is the usual choice. sensitive is for when the person
+#              says the data is private or sensitive.
+#   machine    what the machine needs beyond Docker
+#   starters   Edgible starters for it (github.com/Edgible/starters)
+#   cards      Edgible cards that include it (github.com/Edgible/cards)
+#   ask        the one or two questions whose answers change the recommendation
+#
+# Optional:
+#   exposure.regulated  for regulated or confidential data: health records, legal privilege,
+#                       client files, financial records, children's data
+#   permissions         who sees what inside the app, beyond who reaches it
+#   builders            how a founder or developer uses it as a building block for a product
+#
+# Apps are not listed: the skill's Choose an app step ranks them from awesome-selfhosted's data,
+# so they stay current. Starters and cards are hints. Find lists the current ones.
+#
+# Where Edgible ends TLS, and what its gateway can see, is in Edgible's docs. Link to them
+# when someone asks. Do not state it from memory.
+
+- category: Bookmarks and Link Sharing
+  jobs: [save articles to read later, keep bookmarks across browsers and devices, archive web pages before they disappear, share links with my team]
+  replaces: [Pocket, Raindrop.io, Instapaper, Pinboard, Omnivore]
+  drivers: [shut-down, privacy, cost]
+  fit: {rating: good, why: small, and works well behind a login}
+  exposure:
+    default: web interface on org; browser extensions and phone apps cannot pass an Edgible sign-in, so their hostname is none with the app's own login, or api-key if the app's clients can send a header
+    sensitive: org only, and save from the browser at home
+  machine: little; page archiving needs disk
+  starters: [linkding]
+  cards: []
+  ask: ["read later with saved page copies, or just links?", "do you save from a phone?"]
+
+- category: Photo Galleries
+  jobs: [back up my phone photos, a private place for family photos, keep sensitive photos off the cloud, search my photos by face or place]
+  replaces: [Google Photos, iCloud Photos, Amazon Photos, Flickr]
+  drivers: [privacy, cost, control]
+  fit: {rating: conditional, why: "good with enough disk and a backup plan; photos are irreplaceable, so the backup is not optional"}
+  exposure:
+    default: none, with the app's own login, because phone backup apps cannot pass an Edgible sign-in (the immich starter does this)
+    sensitive: "offer three: not published (back up on home Wi-Fi only), org for the web with phone uploads at home, or none with a strong login and prompt updates. Add disk encryption and an encrypted off-site backup."
+    regulated: "photos of patients, clients, or children carry legal duties: a prototype with consented or test photos only; real data needs compliant hosting and advice"
+  permissions: "albums and partner sharing decide which family members see which photos; check sharing defaults before inviting people"
+  builders: "a photo store with face and place search, for a product prototype that works with people's photos"
+  machine: lots of disk (library plus about 20% for thumbnails); 6 GB memory for Immich; a GPU helps face search but is optional
+  starters: [immich]
+  cards: []
+  ask: ["how sensitive are they, and do you need them away from home?", "how much space does your library take?"]
+
+- category: File Transfer & Synchronization
+  jobs: [sync files between my computers, a private Dropbox, share folders with family or a team, keep documents off the cloud]
+  replaces: [Dropbox, Google Drive, OneDrive, Box, iCloud Drive]
+  drivers: [privacy, cost, control]
+  fit: {rating: conditional, why: "works, but sync clients need the app's own login, and the files need a backup"}
+  exposure:
+    default: none with the app's own login, because desktop and phone sync clients cannot pass an Edgible sign-in
+    sensitive: org for the web only, or not published and synced on the home network
+    regulated: "client or patient files need the firm's or practice's rules on where data may be held; a machine you own can suit, with access rules, backups, and advice"
+  permissions: "shared folders and groups decide who sees which files; set them per team or client"
+  machine: disk for every synced file, and a backup
+  starters: []
+  cards: []
+  ask: ["sync to desktop and phone, or a web folder is enough?", "who shares it?"]
+
+- category: Password Managers
+  jobs: [share passwords with my team or family, stop keeping passwords in a spreadsheet, a password manager I control]
+  replaces: [1Password, LastPass, Bitwarden cloud, Dashlane]
+  drivers: [control, cost, privacy]
+  fit: {rating: conditional, why: "the stakes are high: losing the server or its backup locks everyone out; a hosted manager is often the safer choice for people who will not run backups"}
+  exposure:
+    default: none with the app's own login and two-factor, because browser extensions and phone apps cannot pass an Edgible sign-in (the vaultwarden starter)
+    sensitive: the same, with registration closed, two-factor required, and tested backups
+  machine: little; an always-on machine and a backup are essential
+  starters: [vaultwarden]
+  cards: []
+  ask: ["who will check that backups work?"]
+
+- category: Booking and Scheduling
+  jobs: [members book our courts or rooms, schedule games or matches, arrange a time that suits everyone, let customers book appointments with us]
+  replaces: [court booking apps, Calendly, Doodle, Google Calendar booking pages]
+  drivers: [cost, control]
+  fit: {rating: conditional, why: "works well, but a club or community depends on it: it needs a machine that stays on and someone besides one volunteer to look after it"}
+  exposure:
+    default: none with the app's own member accounts, because members and customers are not in your Edgible organization; sign-up closed or approved by an admin
+    sensitive: the same; members' contact details stay in the app
+  permissions: "admins set booking rules, such as length, how far ahead, and who may book which resource"
+  machine: always on; little else
+  starters: []
+  cards: []
+  ask: ["who looks after it when you step down?", "is there a machine that stays on, and do bookings need payment?"]
+
+- category: Analytics
+  jobs: [see who visits my website, stop paying for analytics, analytics without cookies or a consent banner, GDPR-friendly analytics]
+  replaces: [Google Analytics, Plausible cloud, Fathom, Simple Analytics]
+  drivers: [privacy, compliance, cost]
+  fit: {rating: good, why: small and well suited}
+  exposure:
+    default: dashboard on org; the tracking script on none, because every visitor's browser loads it (the umami starter)
+    sensitive: the same
+  machine: little
+  starters: [umami]
+  cards: [website]
+  ask: ["one site or several?"]
+
+- category: Content Management Systems (CMS)
+  jobs: [cheaper hosting for my business website, edit my website without a developer, a website with members or restricted content, move off Squarespace or Wix]
+  replaces: [Squarespace, Wix, WordPress.com, managed WordPress hosting]
+  drivers: [cost, control]
+  fit: {rating: conditional, why: "good for a CMS on a machine that stays on; a static site is better on free static hosting; a site that earns money needs someone to keep it up"}
+  exposure:
+    default: the site on none; its editor or admin on org where the app allows a separate hostname
+    sensitive: n/a, a website is public
+  machine: always on, with a reliable connection
+  starters: [wordpress]
+  cards: [website, accounts]
+  ask: ["is the site static, or edited in a CMS?", "does it have members or paid content?"]
+
+- category: Blogging Platforms
+  jobs: [start a blog or newsletter, a blog with paid members, leave Substack or Medium]
+  replaces: [Substack, Medium, Ghost(Pro), Beehiiv]
+  drivers: [control, cost]
+  fit: {rating: good, why: "fine on a machine that stays on; newsletters need an outside email sending service"}
+  exposure:
+    default: the blog on none, the admin behind the app's own login
+    sensitive: n/a, a blog is public
+  machine: always on
+  starters: []
+  cards: []
+  ask: ["newsletter emails too?", "paid members?"]
+
+- category: Static Site Generators
+  jobs: [a simple website with no logins, a documentation site, a portfolio]
+  replaces: [Squarespace, Wix, GitHub Pages]
+  drivers: [cost, control]
+  fit: {rating: poor, why: "a static site is usually best on free static hosting (Cloudflare Pages, Netlify, GitHub Pages), with no machine to keep up; self-host it only if the person wants it on their own machine"}
+  exposure:
+    default: none
+    sensitive: n/a
+  machine: n/a
+  starters: []
+  cards: [website]
+  ask: ["does anything need a login or an editor?"]
+
+- category: Federated Identity & Authentication
+  jobs: [add sign-in to my site or app, members sign-up and login, one login for my apps, keep my user list myself]
+  replaces: [Auth0, Clerk, AWS Cognito, Firebase Auth]
+  drivers: [control, cost, privacy]
+  fit: {rating: conditional, why: "works well for apps you build; the sign-in service must stay up, or nobody can log in"}
+  exposure:
+    default: sign-in pages on none, the admin console on org (the accounts card)
+    sensitive: the same, with the admin console on org only
+  permissions: "roles and organizations in the identity app decide what each signed-in person may see; the content must be served by something that checks them"
+  builders: "sign-up, sign-in, and a user list for a product prototype, kept on a machine you own"
+  machine: always on
+  starters: []
+  cards: [accounts]
+  ask: ["who signs in: people you invite, or the public?", "is the content served by something that checks the sign-in?"]
+
+- category: Wikis
+  jobs: [a team wiki, document how we do things, a knowledge base for customers, leave Notion or Confluence]
+  replaces: [Notion, Confluence, Slab, GitBook]
+  drivers: [cost, control, privacy]
+  fit: {rating: good, why: small and well suited}
+  exposure:
+    default: org for a team wiki; none for a public knowledge base
+    sensitive: org
+    regulated: "org, with the app's roles restricting confidential pages; keep client-identifying detail out of pages everyone can read"
+  permissions: "books, spaces, or page roles decide who reads and edits what; set them before importing confidential material"
+  builders: "a documentation or help centre for a product"
+  machine: little
+  starters: []
+  cards: []
+  ask: ["for your team, or public?"]
+
+- category: Knowledge Management Tools
+  jobs: [help new staff learn what we know, a searchable library of our past work and best practices, onboarding for new people, turn our documents into answers]
+  replaces: [Guru, Notion, Confluence, SharePoint, legal and professional knowledge platforms]
+  drivers: [privacy, control, cost]
+  fit: {rating: good, why: "internal users suit org exactly; confidential material is the strongest reason to keep it on a machine you own"}
+  exposure:
+    default: org
+    sensitive: org
+    regulated: "org, with the app's permissions matching who may see which material, such as matters or clients; cite sources and keep a person checking answers"
+  permissions: "need-to-know rules, such as a law firm's ethical walls, are set in the app's groups; Edgible's org only decides who is in the team"
+  builders: "a knowledge base behind a product's help or onboarding"
+  machine: disk for the library; memory for search, and much more when a local AI model answers questions (see the GenAI entry)
+  starters: []
+  cards: [assistant]
+  ask: ["roughly how much material, and in what formats?", "must some people be kept from some material?"]
+
+- category: Note-taking & Editors
+  jobs: [private notes I can reach anywhere, shared notes with family or a team, markdown notes on my own server]
+  replaces: [Evernote, Notion, Google Keep, OneNote]
+  drivers: [privacy, control, cost]
+  fit: {rating: good, why: small; phone apps decide the auth mode}
+  exposure:
+    default: org for the web; none with the app's login when its phone app must sync
+    sensitive: org, or not published
+  machine: little
+  starters: []
+  cards: []
+  ask: ["do you need a phone app?"]
+
+- category: Document Management
+  jobs: [scan and organise paper documents, go paperless, search my invoices and letters, edit and convert PDFs privately]
+  replaces: [Evernote scanning, Adobe Acrobat online, online PDF tools]
+  drivers: [privacy, control]
+  fit: {rating: good, why: "documents are often sensitive, which suits a machine you own"}
+  exposure:
+    default: org
+    sensitive: org, or not published
+    regulated: "documents with client, patient, or financial data: org, with the app's per-user or per-group permissions, encrypted backups, and the person's professional rules on retention"
+  permissions: "owners, groups, and per-document permissions decide who sees which documents"
+  machine: disk for the documents; OCR uses memory
+  starters: [stirling-pdf]
+  cards: []
+  ask: ["archive documents, or work on PDFs?"]
+
+- category: Feed Readers
+  jobs: [follow news and blogs in one place, an RSS reader I control, leave Feedly or Inoreader]
+  replaces: [Feedly, Inoreader, NewsBlur]
+  drivers: [control, cost, privacy]
+  fit: {rating: good, why: small and well suited}
+  exposure:
+    default: org for the web; reader apps use the app's API and cannot pass an Edgible sign-in, so their hostname is none with the app's login
+    sensitive: org only
+  machine: little
+  starters: [miniflux]
+  cards: []
+  ask: ["do you read on a phone app?"]
+
+- category: Media Streaming - Multimedia Streaming
+  jobs: [stream my films and music to my TV and phone, my own Netflix for home videos, share my media library with family]
+  replaces: [Plex Pass, Netflix for owned media, iTunes Match]
+  drivers: [control, cost]
+  fit: {rating: good, why: "the web interface works through Edgible; native TV and phone apps may not pass an Edgible sign-in"}
+  exposure:
+    default: org for the web (the jellyfin starter); native apps on the home network
+    sensitive: org, or home network only
+  machine: disk for the library; transcoding is heavy on CPU, a GPU helps
+  starters: [jellyfin]
+  cards: []
+  ask: ["which devices do you watch on?"]
+
+- category: Internet of Things (IoT)
+  jobs: [home automation, control my smart home from anywhere, one app for all my smart devices, keep my smart home working without the cloud]
+  replaces: [SmartThings, Google Home, Alexa routines, vendor cloud apps]
+  drivers: [local, privacy, control, shut-down]
+  fit: {rating: conditional, why: "it must run on a machine at home, on the same network as the devices; reaching it from outside without opening router ports is where Edgible helps"}
+  exposure:
+    default: org for the web interface; the companion phone apps cannot pass an Edgible sign-in, so they need the app's own login on a hostname without one
+    sensitive: org only, and the phone apps at home
+  machine: always on, at home, on the devices' network (host networking for discovery)
+  starters: []
+  cards: []
+  ask: ["which devices or brands do you have?", "control from outside the home, or only at home?"]
+
+- category: Video Surveillance
+  jobs: [record my security cameras without a cloud subscription, see my cameras from anywhere, detect people and cars on my cameras]
+  replaces: [Ring Protect, Nest Aware, Arlo Secure]
+  drivers: [privacy, cost, local]
+  fit: {rating: conditional, why: "camera footage is sensitive, and recording needs a machine at home with disk and ideally an accelerator"}
+  exposure:
+    default: org only
+    sensitive: org only, or not published
+  machine: always on, at home, disk for recordings; object detection wants a GPU or accelerator
+  starters: []
+  cards: []
+  ask: ["how many cameras, and which kind?"]
+
+- category: Automation
+  jobs: [connect my apps together, automate workflows without Zapier, run AI workflows on my own data]
+  replaces: [Zapier, Make, IFTTT]
+  drivers: [cost, privacy, control]
+  fit: {rating: good, why: "fits well; webhooks from other services need their own open path"}
+  exposure:
+    default: the editor on org; webhook paths on none, because the services calling them cannot sign in
+    sensitive: org, with webhooks only where needed
+  machine: always on
+  starters: []
+  cards: [n8n]
+  ask: ["do other services need to call it with webhooks?"]
+
+- category: Generative Artificial Intelligence (GenAI)
+  jobs: [chat with AI privately, ask questions about my own documents, run AI models without sending data away, one API for several models]
+  replaces: [ChatGPT, Claude.ai for private documents, hosted LLM APIs]
+  drivers: [privacy, cost, control]
+  fit: {rating: conditional, why: "local models need a strong machine and answer slower than hosted ones; small models run on CPU"}
+  exposure:
+    default: the chat on org; the model API on api-key
+    sensitive: org and api-key only
+    regulated: "keeping documents and prompts off outside AI services is a strong reason to run models locally; still check the professional rules, have answers cite their source, and have a person check them before relying on them"
+  permissions: "knowledge bases and groups decide which documents each person's questions can draw on; with need-to-know rules, such as a law firm's ethical walls, one shared knowledge base is wrong"
+  builders: "a private model and document chat for a prototype, so early users' data does not go to an outside AI service"
+  machine: much memory; a GPU or Apple Silicon for anything but small models
+  starters: []
+  cards: [assistant, litellm]
+  ask: ["what hardware do you have?", "chat, documents, or an API for your own apps?"]
+
+- category: Software Development - Project Management
+  jobs: [host my own Git repositories, a private GitHub, code review for my team]
+  replaces: [GitHub, GitLab.com, Bitbucket]
+  drivers: [control, cost, privacy]
+  fit: {rating: good, why: "git and API tokens cannot pass an Edgible sign-in, so the forge's own login protects it"}
+  exposure:
+    default: none with the app's own login and registration closed; SSH as a tcp app (the gitea starter)
+    sensitive: the same; the web alone could be org, but git would stop working
+  machine: little
+  starters: [gitea]
+  cards: [ci]
+  ask: ["just you, or a team?"]
+
+- category: Software Development - Continuous Integration & Deployment
+  jobs: [build and test my projects on my own machine, stop paying for CI minutes, CI for private repositories]
+  replaces: [GitHub Actions minutes, CircleCI, GitLab CI minutes]
+  drivers: [cost, control]
+  fit: {rating: good, why: "the runner needs full control of Docker on its machine, so it belongs on a machine where that is acceptable"}
+  exposure:
+    default: the runner publishes nothing; it connects out to the forge
+    sensitive: the same, with the runner on its own machine
+  machine: CPU, memory and disk for builds
+  starters: []
+  cards: [ci]
+  ask: ["one trusted machine, or a separate one for builds?"]
+
+- category: Monitoring & Status Pages
+  jobs: [know when my website goes down, a status page for my customers, monitor my services]
+  replaces: [UptimeRobot, Pingdom, Statuspage, Better Uptime]
+  drivers: [cost, control]
+  fit: {rating: good, why: "keep the monitor on a different machine from what it watches, or it cannot report that machine going down"}
+  exposure:
+    default: dashboard on org; a public status page on none
+    sensitive: org
+  machine: little; a second machine
+  starters: [uptime-kuma]
+  cards: [website]
+  ask: ["a public status page, or alerts for you?"]
+
+- category: Calendar & Contacts
+  jobs: [sync calendars and contacts without Google, a shared family calendar]
+  replaces: [Google Calendar, iCloud Calendar, Google Contacts]
+  drivers: [privacy, control]
+  fit: {rating: conditional, why: "phone and desktop calendar apps sync over CalDAV and CardDAV, which cannot pass an Edgible sign-in"}
+  exposure:
+    default: none with the app's own login, for the sync clients
+    sensitive: the same, or sync on the home network only
+  machine: little
+  starters: []
+  cards: []
+  ask: ["which phones and computers must sync?"]
+
+- category: Games
+  jobs: [a Minecraft server for my friends, host a game server for my group, a game server my kids can join from PC and phone]
+  replaces: [Minecraft Realms, rented game servers]
+  drivers: [cost, control]
+  fit: {rating: conditional, why: "game servers are tcp or udp apps, which Edgible publishes on ports 20000 to 29999 with no auth mode; the game's own whitelist decides who gets in"}
+  exposure:
+    default: tcp or udp with no auth mode, and the game's whitelist on (the minecraft starter)
+    sensitive: n/a
+  machine: CPU and memory grow with players; always on while people play
+  starters: [minecraft]
+  cards: []
+  ask: ["which game, and Java or Bedrock players?", "how many players?"]
+
+- category: Communication - Email - Complete Solutions
+  jobs: [my own email server, email on my own domain without Google or Microsoft]
+  replaces: [Gmail, Google Workspace, Microsoft 365, Fastmail]
+  drivers: [privacy, control, cost]
+  fit: {rating: poor, why: "mail sent from a home or residential connection usually lands in spam or is refused, and a mail server needs constant care; recommend a hosted provider on the person's own domain"}
+  exposure:
+    default: n/a
+    sensitive: n/a
+  machine: n/a
+  starters: []
+  cards: []
+  ask: []
+
+- category: DNS
+  jobs: [block ads on every device, my own DNS server, a Pi-hole I can use away from home]
+  replaces: [NextDNS, ad-blocking DNS services]
+  drivers: [privacy, control]
+  fit: {rating: refused, why: "a DNS resolver open to the internet can be abused by anyone; it is on the starters README's not-a-starter list. Run it on the home network only, without Edgible, or use a hosted filtering DNS."}
+  exposure:
+    default: n/a, not published
+    sensitive: n/a
+  machine: n/a
+  starters: []
+  cards: []
+  ask: []

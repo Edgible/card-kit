@@ -1,6 +1,6 @@
 ---
 name: edgible-cards
-description: Self-host an app on a machine you own with Edgible, from a tested Edgible starter or card, and look after it afterwards. Use when someone asks to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on) with Edgible; or wants their own version of a hosted service (a website, bookmarks, passwords, photos, files, analytics, a Git server, a wiki) for cost, privacy, or control, or is leaving one that shut down or got expensive; asks what is running, whether it works, or why it is broken; wants to sign in, get an API key, change a setting, pause, back up, restore, upgrade, move, or remove such an app; or when a starter, card, or card-kit tool needs building or fixing.
+description: Self-host an app on a machine you own with Edgible, from a tested Edgible starter or card, and look after it afterwards. Use when someone asks to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on) with Edgible; or wants their own version of a hosted service (a website, bookmarks, passwords, photos, files, analytics, a Git server, a wiki, a knowledge base, bookings) for cost, privacy, or control, or is leaving one that shut down or got expensive; asks what is running, whether it works, or why it is broken; wants to sign in, get an API key, change a setting, pause, back up, restore, upgrade, move, or remove such an app; or when a starter, card, or card-kit tool needs building or fixing.
 ---
 
 # Self-host with Edgible starters and cards
@@ -9,7 +9,7 @@ A **starter** is one self-hosted app, tested end to end on a real Edgible servin
 
 Work from a starter or card whenever one fits. Its README is a tested path, and following it gives the same result for everyone. Improvise only where the card leaves a choice open, and say so when you do.
 
-When the person has a problem and has not asked to self-host, start with [When to suggest it](#when-to-suggest-it). Steps 1 to 5 set an app up. [After it is running](#after-it-is-running) covers everything after that: what is running, whether it works, fixing it, signing in, changing it, pausing, backing up, upgrading, moving, and removing it.
+Most people describe a need, not an app. Start with [Understand the need](#understand-the-need), which reads [needs-map.yaml](needs-map.yaml) next to this file, and, when they have not asked to self-host, [When to suggest it](#when-to-suggest-it). A person who names an app goes straight to [Find](#1-find). Steps 1 to 5 set an app up. [After it is running](#after-it-is-running) covers everything after that: what is running, whether it works, fixing it, signing in, changing it, pausing, backing up, upgrading, moving, and removing it.
 
 ## When to suggest it
 
@@ -23,7 +23,7 @@ The person may describe a problem, not a request to self-host: a hosting bill, a
 
 1. Answer the question they asked, with the options side by side: hosted, and self-hosted with Edgible. If one detail decides it, ask that one question.
 2. For self-hosting, be plain about what it costs: they keep the app updated and backed up, it is down while the machine is, and it uses that machine's power and bandwidth.
-3. Name what Edgible would run: a starter or card if one fits ([Find](#1-find)), or the shortlist from [Choose an app](#choose-an-app).
+3. Name what Edgible would run, from the need's entry in the needs map: its starter or card if one fits ([Find](#1-find)), or the shortlist from [Choose an app](#choose-an-app). Say what its fit and exposure mean for this person.
 4. Do nothing until the person chooses. If they choose self-hosting, continue at [Find](#1-find).
 
 **Example.** "Hosting my small marketing website costs $40 a month. Is there a better way?"
@@ -42,6 +42,29 @@ Do not suggest self-hosting when the person's problem has nothing to do with run
 - **Run every step the README gives, in order.** Never skip Check. Stop at the first step that fails, and fix it or report it. Do not work around it silently.
 - **Change only `card.env`** for this machine's settings. A change to any other file in a card is a fix: see [Fix a card or card-kit](#fix-a-card-or-card-kit).
 - **Fetch from upstream `main`.** A local clone of a cards or starters repo may be old.
+
+## Understand the need
+
+Skip this step when the person names an app ("self-host Miniflux"). Go to [Find](#1-find).
+
+Otherwise, look the need up in [needs-map.yaml](needs-map.yaml), next to this file. Each entry is an awesome-selfhosted category, with the needs people describe (`jobs`), the services they leave (`replaces`), why they self-host it (`drivers`), how well it suits Edgible (`fit`), how to publish it (`exposure`), what the machine needs, its starters and cards, and the questions that change the answer (`ask`). Match on `jobs` and `replaces`, in the person's words: "Pocket shut down" is Bookmarks and Link Sharing, and "home automation" is Internet of Things (IoT). Read the whole entry.
+
+- **Ask at most two or three questions**, and only ones whose answers change the recommendation: the entry's `ask`, plus how sensitive the data is when a driver is privacy, plus which machine would run it when you do not know. Do not hand the person a questionnaire.
+- **Fit `poor` or `refused`:** say so plainly, with the entry's reason, and recommend what does work, such as a hosted provider, or running it on the home network only. Do not build it.
+- **Fit `good` or `conditional`:** offer it as [When to suggest it](#when-to-suggest-it) says, with the entry's conditions stated.
+- **Who uses it.** Edgible's `org` lets in only members of the person's Edgible organization: their team. Club members, customers, patients, and families are not in it. They use the app's own accounts on a hostname with auth mode `none`, with sign-up closed or approved by an admin.
+- **How sensitive the data is.** There are three levels:
+  - **Ordinary:** the entry's `exposure.default`.
+  - **Sensitive** (private photos, personal notes): offer the entry's `exposure.sensitive` choices, including not publishing at all, before the default.
+  - **Regulated or confidential** (health records, legal privilege, client files, financial records, children's data): rules apply beyond technology. A machine you own suits a prototype with test or consented data, or a firm's internal knowledge with access rules. For real regulated data at scale, say plainly that it needs compliant hosting, a security review, and the person's legal or professional advice, and point to the rules that may apply. Do not present a home machine as the answer for it.
+- **Who sees what inside the app.** The auth mode decides who reaches the app. Who sees which records, such as which matters, which clients, or which family members, is set with the app's own roles and permissions. The entry's `permissions` says what to check. Raise it whenever people must not all see everything.
+- **Who looks after it.** For a club, a charity, a committee, or a small business with one technical person, ask who looks after it when that person is away or steps down. A service others depend on needs a second person who knows it, tested backups, and a machine that stays on. If nobody can, a free hosted option or a simpler tool may serve them better: say so.
+- **Building a product.** A founder or developer building something (a prototype, a startup) wants building blocks, not one app. Answer their question first: prototyping tools, user research, and the rules for their domain. Then offer self-hosted blocks where they help, from the entry's `builders`, such as a private AI model over their own documents, sign-in, or photo storage. Be clear about which stage self-hosting suits.
+- **No entry matches:** pick the category from awesome-selfhosted's `tags/` instead, as in [Choose an app](#choose-an-app), and reason about fit and exposure the same way.
+
+Then go to [Find](#1-find), with the entry's `starters` and `cards` as the first candidates. If none fits, go to [Choose an app](#choose-an-app) with the entry's category.
+
+When someone asks what Edgible's gateway can see, or where TLS ends, point to Edgible's documentation. Do not answer from memory.
 
 ## 1. Find
 
@@ -71,9 +94,11 @@ If nothing fits:
 Before anything starts, put the card's open choices to the person in one message, with your recommendation for each:
 
 - **Which device runs each place.** `edgible device list` prints the names. One machine can hold every place of a small, trusted setup. Say what the card's README says about keeping places apart.
-- **Each hostname's auth mode**, and what it means: `none` is the open internet, protected only by the app's own login.
+- **Each hostname's auth mode**, and what it means: `none` is the open internet, protected only by the app's own login. When the data is sensitive, offer the needs map's `exposure.sensitive` choices, including not publishing at all, even when the starter uses `none`.
 - **Anything the README marks as a trade-off**, such as a runner with the Docker socket.
 - **Whether it must stay up** after a restart. If so, check the machine first: see [Keep it running](#keep-it-running).
+- **Roles inside the app**, when people must not all see everything: who is admin, and which groups see which records.
+- **Who looks after it**, when others depend on it: a second person, and where the backups go.
 
 ## 3. Deploy
 
@@ -246,10 +271,10 @@ Use this step only when the person described a need and no starter or card meets
 ash=$(mktemp -d)
 curl -fsSL https://github.com/awesome-selfhosted/awesome-selfhosted-data/archive/refs/heads/master.tar.gz \
   | tar -xz --strip-components=1 -C "$ash"
-ls "$ash/tags"    # the categories: pick the one that matches the need
+ls "$ash/tags"    # the categories; the needs map names the category for the needs it covers
 ```
 
-Then list that category's apps, most starred first:
+Then list that category's apps, with each one's description, most starred first:
 
 ```bash
 tag="Bookmarks and Link Sharing"   # the name: line of the category's file in tags/
@@ -260,9 +285,12 @@ for f in $(grep -l -- "- $tag\$" "$ash"/software/*.yml); do
     /^  - Docker$/       {docker = "docker"}
     /^archived: true/    {note = note " archived"}
     /^depends_3rdparty: true/ {note = note " needs-3rd-party"}
-    END {printf "%s\t%s\t%s\t%s\t%s\n", stars, app, updated, (docker ? docker : "-"), note}' "$f"
-done | sort -rn | head -15
+    /^description:/      {sub(/^description: /, ""); desc = $0}
+    END {printf "%s\t%s\t%s\t%s\t%s\t%s\n", stars, app, updated, (docker ? docker : "-"), note, desc}' "$f"
+done | sort -rn | head -25
 ```
+
+**Rank by how well an app does the job, not by stars.** Stars measure popularity, and a popular app in the category may do a different job: for "members book our tennis courts", the most-starred Booking and Scheduling apps book appointments with a person or hotel rooms, and the right one, a resource-booking app, has a small fraction of their stars. Read each app's `description` against the person's job, and use stars only to choose between apps that fit equally well.
 
 Keep only apps that list `Docker`, are not archived, were updated within about six months, and do not need a third-party service. Read the shortlisted apps' own docs for what the list does not say: the containers and database they need, how the first admin is made, and whether they have phone or desktop apps. Apps with their own clients need an auth mode other than `org` on some hostname: see the starters README's auth table.
 
