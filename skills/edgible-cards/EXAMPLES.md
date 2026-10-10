@@ -1,6 +1,6 @@
 # What to ask
 
-With the [edgible-cards skill](SKILL.md) installed, you do not need to know which app you want, or phrase anything carefully. Describe your situation the way you would to a friend who knows self-hosting. The prompts below are written the way people actually type, typos included. Some are real questions from testing the skill.
+With the [edgible-cards skill](SKILL.md) installed, you do not need to know which app you want, or phrase anything carefully. Describe your situation the way you would to a friend who knows self-hosting. The prompts below are written in everyday language, the way people ask. Some are real questions from testing the skill.
 
 Under each one is what a good answer does. If your agent's answer falls short of that, it is worth [opening an issue](https://github.com/Edgible/card-kit/issues).
 
@@ -8,7 +8,7 @@ Under each one is what a good answer does. If your agent's answer falls short of
 
 Most people start here. The skill works out which kind of app fits, whether self-hosting suits you at all, and the one or two questions that decide it.
 
-> I do the IT stuff for the commitee of a small surbant tennis club. we want a way to make it easy for our members to self organise and schedule tennis games on our courts. I havent found a prdouct that does this thats free. Help!
+> I do the IT stuff for the committee of a small suburban tennis club. We want a way to make it easy for our members to self-organise and schedule tennis games on our courts. I haven't found a product that does this that's free. Help!
 
 A good answer checks first whether your tennis association already offers a booking system, and lists free options with no server, such as a shared calendar or a group chat. It then suggests a court-booking app (LibreBooking) on a small cloud server for a few dollars a month, with member accounts, because club members are not in your Edgible organization. It asks who looks after it when you step down.
 
@@ -16,11 +16,11 @@ A good answer checks first whether your tennis association already offers a book
 
 A good answer offers two or three bookmark apps that keep copies of pages, recommends one, and explains the phone-app trade-off: the web interface can sit behind your organization's sign-in, and phone apps need the app's own login. It asks about importing from Pocket.
 
-> ive got lots of photos some which have sensitive material that i dont want to risk on the cloud, is there a way to manage this safely and privately?
+> I've got lots of photos, some of which have sensitive material that I don't want to risk on the cloud. Is there a way to manage this safely and privately?
 
 A good answer puts the publishing choice to you before anything else: not published at all (back up on home Wi-Fi only), the web behind your organization's sign-in, or open with a strong login. It adds disk encryption and an encrypted off-site backup. It does not suggest a cloud server without asking, because keeping the photos off the cloud is the point.
 
-> I am running a small boutique law firm that specializes in maritime law. Over time we have built a valuable asset of cases and best practices. we need to onboard some new layweres and we want a way to help them leverage this body of knowledge. Help!
+> I'm running a small boutique law firm that specializes in maritime law. Over time we have built up a valuable collection of cases and best practices. We need to onboard some new lawyers, and we want a way to help them make the most of this body of knowledge. Help!
 
 A good answer starts with onboarding itself (a playbook, a precedent bank, mentoring), then offers a wiki and a private AI over the firm's own documents, behind the firm's sign-in. It raises who may see which matters, because Edgible's sign-in only decides who is in the firm. It asks for answers to cite their sources, and points to your professional rules on confidentiality.
 
@@ -34,7 +34,7 @@ A good answer explains that home automation must run on a machine at home, on th
 
 ## Leave a service that costs too much
 
-> its costing me $40/month to host my small markering website on squarespace. is there a better way?
+> It's costing me $40/month to host my small marketing website on Squarespace. Is there a better way?
 
 A good answer asks whether the site is static or edited in a CMS. For a static site, free static hosting is usually best, with no machine to look after. For a CMS such as WordPress, a starter on a small cloud server can cut the bill a long way, in return for updates and backups.
 
@@ -44,7 +44,7 @@ A good answer points to the Umami starter, which is cookieless: the dashboard be
 
 ## Build something
 
-> I'm a founder of a new startup. we want to help people with dementia store and recall important memories. we want to build a prototype. are there some tools out there that can help us get started?
+> I'm the founder of a new startup. We want to help people with dementia store and recall important memories, and we want to build a prototype. Are there some tools out there that can help us get started?
 
 A good answer answers the founder's question first: prototyping tools, talking to carers and clinicians, and the rules for health data and consent. Self-hosted building blocks, such as a private AI over your own documents, sign-in, or photo storage, come up as one option, for a prototype with test or consented data. It says plainly that real patient data needs compliant hosting and advice.
 

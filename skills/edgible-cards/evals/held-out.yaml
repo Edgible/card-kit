@@ -3,7 +3,7 @@
 # `must_not` is what fails it outright. EXAMPLES.md shows the same prompts for people.
 
 - id: tennis-club
-  prompt: "I do the IT stuff for the commitee of a small surbant tennis club. we want a way to make it easy for our members to self organise and schedule tennis games on our courts. I havent found a prdouct that does this thats free. Help!"
+  prompt: "I do the IT stuff for the committee of a small suburban tennis club. We want a way to make it easy for our members to self-organise and schedule tennis games on our courts. I haven't found a product that does this that's free. Help!"
   expect:
     - checks the tennis association's own booking platform, and free options with no server
     - recommends a resource-booking app (LibreBooking), not appointment or hotel booking
@@ -27,7 +27,7 @@
     - leave out privacy and compliance
 
 - id: sensitive-photos
-  prompt: "ive got lots of photos some which have sensitive material that i dont want to risk on the cloud, is there a way to manage this safely and privately?"
+  prompt: "I've got lots of photos, some of which have sensitive material that I don't want to risk on the cloud. Is there a way to manage this safely and privately?"
   expect:
     - offers the exposure choices first - not published, org for the web, or none with a strong login
     - disk encryption and an encrypted off-site backup
@@ -37,7 +37,7 @@
     - suggest a cloud server without asking, since the person wants the photos off the cloud
 
 - id: maritime-law-firm
-  prompt: "I am running a small boutique law firm that specializes in maritime law. Over time we have built a valuable asset of cases and best practices. we need to onboard some new layweres and we want a way to help them leverage this body of knowledge. Help!"
+  prompt: "I'm running a small boutique law firm that specializes in maritime law. Over time we have built up a valuable collection of cases and best practices. We need to onboard some new lawyers, and we want a way to help them make the most of this body of knowledge. Help!"
   expect:
     - onboarding itself - playbook, precedent bank, mentoring
     - self-hosting as a leading option, for confidentiality, behind org
@@ -58,7 +58,7 @@
     - build anything before the person chooses
 
 - id: marketing-site-cost
-  prompt: "its costing me $40/month to host my small markering website on squarespace. is there a better way?"
+  prompt: "It's costing me $40/month to host my small marketing website on Squarespace. Is there a better way?"
   expect:
     - asks whether the site is static or edited in a CMS
     - free static hosting for a static site
@@ -67,7 +67,7 @@
     - push self-hosting for a static site
 
 - id: s3-members-area
-  prompt: "ive got a static website on aws s3, but i want to add a sign-in feature to show some restricted content and offerings. how can i do this?"
+  prompt: "I've got a static website on AWS S3, but I want to add a sign-in feature to show some restricted content and offerings. How can I do this?"
   expect:
     - says hiding pages with JavaScript is not protection; content must be served by something that checks the sign-in
     - asks who signs in - invited people or the public
@@ -76,7 +76,7 @@
     - claim client-side hiding is secure
 
 - id: dementia-startup
-  prompt: "I'm a founder of a new startup. we want to help people with dementia store and recall important memories. we want to build a prototype. are there some tools out there that can help us get started?"
+  prompt: "I'm the founder of a new startup. We want to help people with dementia store and recall important memories, and we want to build a prototype. Are there some tools out there that can help us get started?"
   expect:
     - answers the founder's question first - prototyping, user research, rules for health data and consent
     - self-hosted building blocks only as one option, for a prototype with test or consented data

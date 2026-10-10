@@ -1,6 +1,6 @@
 [
   {
-    "query": "I do the IT stuff for the commitee of a small surbant tennis club. we want a way to make it easy for our members to self organise and schedule tennis games on our courts. I havent found a prdouct that does this thats free. Help!",
+    "query": "I do the IT stuff for the committee of a small suburban tennis club. We want a way to make it easy for our members to self-organise and schedule tennis games on our courts. I haven't found a product that does this that's free. Help!",
     "should_trigger": true
   },
   {
@@ -8,7 +8,7 @@
     "should_trigger": true
   },
   {
-    "query": "ive got lots of photos some which have sensitive material that i dont want to risk on the cloud, is there a way to manage this safely and privately?",
+    "query": "I've got lots of photos, some of which have sensitive material that I don't want to risk on the cloud. Is there a way to manage this safely and privately?",
     "should_trigger": true
   },
   {
@@ -16,11 +16,11 @@
     "should_trigger": true
   },
   {
-    "query": "its costing me $40/month to host my small markering website on squarespace. is there a better way?",
+    "query": "It's costing me $40/month to host my small marketing website on Squarespace. Is there a better way?",
     "should_trigger": true
   },
   {
-    "query": "I am running a small boutique law firm that specializes in maritime law. Over time we have built a valuable asset of cases and best practices. we need to onboard some new layweres and we want a way to help them leverage this body of knowledge. Help!",
+    "query": "I'm running a small boutique law firm that specializes in maritime law. Over time we have built up a valuable collection of cases and best practices. We need to onboard some new lawyers, and we want a way to help them make the most of this body of knowledge. Help!",
     "should_trigger": true
   },
   {

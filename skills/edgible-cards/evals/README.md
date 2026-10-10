@@ -29,4 +29,4 @@ A quality run must let the skill read its own folder, or it answers without the 
 
 - A person reviews any change to these prompts, as a pull request: they are what the scores mean.
 - Never tune the skill against `held-out.yaml`. A fix must help a pattern seen in generated prompts, and the held-out scores show whether it helped or hurt.
-- Write prompts the way people type, and keep real ones as they were written. Leave out real names, domains, and anything private.
+- Write prompts in everyday language, the way people ask. Real ones may be tidied for spelling and punctuation, keeping their wording. Leave out real names, domains, and anything private.
