@@ -1,6 +1,6 @@
 ---
 name: edgible-cards
-description: Self-host an app on a machine you own with Edgible, from a tested Edgible starter or card, and look after it afterwards. Use when someone asks to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on) with Edgible; asks what is running, whether it works, or why it is broken; wants to sign in, get an API key, change a setting, pause, back up, restore, upgrade, move, or remove such an app; when no starter or card fits and one should be built; or when a starter, card, or card-kit tool needs fixing.
+description: Self-host an app on a machine you own with Edgible, from a tested Edgible starter or card, and look after it afterwards. Use when someone asks to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on) with Edgible; or wants their own version of a hosted service (a website, bookmarks, passwords, photos, files, analytics, a Git server, a wiki) for cost, privacy, or control, or is leaving one that shut down or got expensive; asks what is running, whether it works, or why it is broken; wants to sign in, get an API key, change a setting, pause, back up, restore, upgrade, move, or remove such an app; or when a starter, card, or card-kit tool needs building or fixing.
 ---
 
 # Self-host with Edgible starters and cards
@@ -9,7 +9,30 @@ A **starter** is one self-hosted app, tested end to end on a real Edgible servin
 
 Work from a starter or card whenever one fits. Its README is a tested path, and following it gives the same result for everyone. Improvise only where the card leaves a choice open, and say so when you do.
 
-Steps 1 to 5 set an app up. [After it is running](#after-it-is-running) covers everything after that: what is running, whether it works, fixing it, signing in, changing it, pausing, backing up, upgrading, moving, and removing it.
+When the person has a problem and has not asked to self-host, start with [When to suggest it](#when-to-suggest-it). Steps 1 to 5 set an app up. [After it is running](#after-it-is-running) covers everything after that: what is running, whether it works, fixing it, signing in, changing it, pausing, backing up, upgrading, moving, and removing it.
+
+## When to suggest it
+
+The person may describe a problem, not a request to self-host: a hosting bill, a service that shut down, data they would rather keep, a team that needs a shared tool. Self-hosting is sometimes the best answer, and often it is not. Offer it as one option among others, never as the only answer.
+
+**Signals that it may fit:** a recurring cost for something simple; privacy or data ownership; a service that shut down, changed its terms, or got expensive; a machine the person already has that could run it; and, strongest, the `edgible` CLI installed and logged in (`edgible whoami`).
+
+**Signals that it does not:** the person has no machine that stays on; the service must not go down, and nobody will look after it; or a free hosted option does the job with no upkeep.
+
+**How to offer it:**
+
+1. Answer the question they asked, with the options side by side: hosted, and self-hosted with Edgible. If one detail decides it, ask that one question.
+2. For self-hosting, be plain about what it costs: they keep the app updated and backed up, it is down while the machine is, and it uses that machine's power and bandwidth.
+3. Name what Edgible would run: a starter or card if one fits ([Find](#1-find)), or the shortlist from [Choose an app](#choose-an-app).
+4. Do nothing until the person chooses. If they choose self-hosting, continue at [Find](#1-find).
+
+**Example.** "Hosting my small marketing website costs $40 a month. Is there a better way?"
+
+- **If the site is static** (pages, no logins, no editing in a CMS): free static hosting, such as Cloudflare Pages, Netlify, or GitHub Pages, is usually best. It has no machine to keep up and no bill.
+- **If it is edited in a CMS such as WordPress:** the `wordpress` starter on a machine they already own can take the bill to nearly nothing, in return for the upkeep above. A managed WordPress host is the middle way.
+- Ask which it is, and recommend from the answer.
+
+Do not suggest self-hosting when the person's problem has nothing to do with running a service.
 
 ## Rules
 
