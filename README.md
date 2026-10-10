@@ -114,13 +114,14 @@ A card that may be combined with others reads better with names that say which a
 
 A card can carry `test.yml`, the latest result of its whole lifecycle: Check, Start, Publish, Verify, and Tear down. Git history holds the earlier ones.
 
-Commit `test.yml` only when something material changes: the result, a step's outcome, or the images. A rerun with the same outcome and the same images leaves the file alone, so `tested` is the day of the run that produced this result, not the most recent run. [test.schema.json](test.schema.json) is its source of truth, and `check-cards` checks it when it is there. Starters always have one; for a card it is optional.
+Commit `test.yml` only when something material changes: the result, a step's outcome, the images, or the files. A rerun with the same outcome and the same images leaves the file alone, so `tested` is the day of the run that produced this result, not the most recent run. [test.schema.json](test.schema.json) is its source of truth, and `check-cards` checks it when it is there. Starters always have one; for a card it is optional.
 
 ```yaml
 tested: 2026-10-10
 result: pass                 # pass only when no step failed
 card-kit: 3f2a9c1            # the card-kit commit the checks came from
 edgible-cli: 1.4.6
+files: sha256:e0a0fb12ab72ca14  # the card's files when tested
 machine: linux/amd64, docker 29.4
 images:
   - gitea/gitea:1.24.6
@@ -156,6 +157,8 @@ steps:
     runner-online: pass      # the runner registered with Gitea
     workflow-runs: pass      # a workflow ran on it to the end
 ```
+
+`files` is a fingerprint of every file in the card but `README.md`, `images/`, `test.yml`, and hidden files. When it no longer matches, the card changed since its test: `check-cards` says so in a note, and `check-cards --fresh` fails it, for a repo such as starters where every card must carry a current test.
 
 ### Test inputs
 
@@ -265,6 +268,20 @@ It works on a copy of the card, through the same steps a person follows. Places 
 While it runs, it measures each place: the peak memory of its containers together, its images, and its data at the end. It writes `test.yml` with `measured:`, unless nothing material (the result, a step, the images) changed since the last one. It prints a suggested `places:`: memory with half again as headroom, at least 256 MB; disk as images and data plus 1 GB; the architectures every image has. `--write-places` writes that into `card.yml`. Raise a number if the app documents a higher minimum.
 
 `--org-label` is read off an app the org already has, if you leave it out. `--by agent` marks a run made by an agent. `--keep` leaves the card running and published after Verify. It needs `dig` and `edgible`, logged in, besides Docker.
+
+### test-cards
+
+Tests every card in a repo that needs it, one at a time, and keeps a status for each: the command a CI job runs. Like `test-card`, it runs with `python3` on a serving device, from the repo's root.
+
+```bash
+python3 ../card-kit/test-cards.py --device macbookair --status ../status
+```
+
+A card needs a test when it has no status yet, when its files changed since its last status, or when `edgible --version` differs from the version of its last status, so a new Edgible version retests every card. `--all` tests every card, and `--only gitea immich` tests those.
+
+The status directory holds `status.json`, every card's latest result, Edgible version, date and fingerprint, and one `<card>.json` per card in the shape of a [shields.io endpoint badge](https://shields.io/badges/endpoint-badge), labelled with the Edgible version it ran on: `Edgible 1.4.6 | passing`. Keep the directory on a branch of its own, such as `status`, and a README can show each card's badge from it without a commit to `main`.
+
+It never changes the repo. `test.yml` is the author's record of a version of a card, and the status is CI's record of whether it still passes. It exits 1 when a card it tested failed.
 
 ## License
 

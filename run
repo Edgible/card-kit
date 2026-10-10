@@ -13,16 +13,16 @@ repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 
 if [ $# -eq 0 ]; then
   echo "usage: <path to card-kit>/run <tool> [args...]" >&2
-  echo "tools: $(cd "$kit" && ls *.py | sed 's/\.py$//' | grep -vE '^(check-env|test-card)$' | tr '\n' ' ')" >&2
+  echo "tools: $(cd "$kit" && ls *.py | sed 's/\.py$//' | grep -vE '^(check-env|test-card|test-cards)$' | tr '\n' ' ')" >&2
   exit 2
 fi
 
 tool=$1
 shift
 
-if [ "$tool" = check-env ] || [ "$tool" = test-card ]; then
+if [ "$tool" = check-env ] || [ "$tool" = test-card ] || [ "$tool" = test-cards ]; then
   echo "$tool checks the machine a card runs on, so it runs outside a container:" >&2
-  echo "  python3 $kit/check-env.py $*" >&2
+  echo "  python3 $kit/$tool.py $*" >&2
   exit 2
 fi
 
