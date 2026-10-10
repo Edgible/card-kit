@@ -13,7 +13,8 @@ follows in the card's README:
   check-env   fills empty secrets the way card.env says, and stops on a conflict
   start       up --wait, as its own Compose project (cardtest-<card>-<file>), so the
               test never touches the machine's own containers or volumes
-  prepare     an optional command between Start and Publish, such as making the admin
+  prepare     the card's prepare.sh, if it has one, between Start and Publish, such as
+              making the admin; --prepare replaces it
   publish     each app in card.yml; a name already taken in the org is published as
               test-<name>, and the existing app is never touched
   verify      each hostname by its auth mode: none answers, org redirects to the Edgible
@@ -272,8 +273,8 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--device", required=True, help="the serving device, as `edgible device list` names it")
     ap.add_argument("--org-label", default="", help="the org's hostname label; read off an existing app if left out")
     ap.add_argument("--prepare", default="",
-                    help="shell to run between Start and Publish, with card.env exported and $COMPOSE set "
-                         "to the test's compose command for the first Compose file")
+                    help="shell to run between Start and Publish in place of the card's prepare.sh, with card.env "
+                         "exported and $COMPOSE set to the test's compose command for the first Compose file")
     ap.add_argument("--verify-wait", type=int, default=300, help="seconds to wait for each hostname")
     ap.add_argument("--check", action="append", default=[], metavar="NAME=COMMAND",
                     help="a check only this card knows how to make, run after Verify and after the places with "
@@ -349,10 +350,12 @@ def main(argv: list[str]) -> int:
             sh(dc(f, "up -d --wait --wait-timeout 1200"), timeout=2400)
         print(f"start: {', '.join(f.name for f in first)} up ({int(time.time() - t)}s)")
 
-        if args.prepare:
+        # The card's own prepare.sh, the one its README runs, unless --prepare replaces it.
+        prepare_cmd = args.prepare or (f"sh {card / 'prepare.sh'}" if (card / "prepare.sh").is_file() else "")
+        if prepare_cmd:
             prepare = sh(f"cd {work} && set -a && . {env_file} && set +a && "
-                         f"COMPOSE='docker compose -p {projects[first[0]]} --env-file {env_file} -f {first[0]}' "
-                         f"&& {args.prepare}", check=False, timeout=900)
+                         f"export COMPOSE='docker compose -p {projects[first[0]]} --env-file {env_file} -f {first[0]}' "
+                         f"&& {prepare_cmd}", check=False, timeout=900)
             print("prepare:", "ok" if prepare.returncode == 0 else "FAILED",
                   hide((prepare.stdout + prepare.stderr).strip()[-300:]))
             if prepare.returncode != 0:
