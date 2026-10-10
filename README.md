@@ -283,6 +283,22 @@ The status directory holds `status.json`, every card's latest result, Edgible ve
 
 It never changes the repo. `test.yml` is the author's record of a version of a card, and the status is CI's record of whether it still passes. It exits 1 when a card it tested failed.
 
+## Agent skill
+
+[skills/edgible-cards](skills/edgible-cards/SKILL.md) teaches an AI agent to self-host with Edgible the way this README says. It finds a starter or card that fits and puts its open choices to the person. Then it deploys and verifies by the card's README. When nothing fits, it builds a starter and tests it with `test-card`, and with the person's yes it offers the starter, or a fix, as a pull request. It is a plain `SKILL.md` in the open Agent Skills format, with shell commands only, so agents that read that format can use it.
+
+For Claude Code, clone this repo and link the skill into your skills directory. A `git pull` then updates it:
+
+```bash
+git clone https://github.com/Edgible/card-kit ~/.card-kit
+mkdir -p ~/.claude/skills
+ln -s ~/.card-kit/skills/edgible-cards ~/.claude/skills/edgible-cards
+```
+
+For another agent, put the `edgible-cards` directory where that agent reads skills.
+
+The skill links here for the format rather than copying it. A change to the format or a tool that changes what a person does goes into the skill in the same pull request.
+
 ## License
 
 [MIT](LICENSE).
