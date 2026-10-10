@@ -40,6 +40,7 @@ standard library, because it checks the machine and so does not run in a contain
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import platform
@@ -276,13 +277,26 @@ def places_yaml(places: dict[str, dict]) -> str:
 
 # --- test.yml ---------------------------------------------------------------
 
+def files_hash(card_dir: Path) -> str:
+    """A fingerprint of what a test depends on: every file of the card but README.md, images/,
+    test.yml, and hidden files. A change to any of them means the card should be tested again."""
+    digest = hashlib.sha256()
+    for path in sorted(p for p in card_dir.rglob("*") if p.is_file()):
+        rel = path.relative_to(card_dir)
+        if rel.parts[0] in ("README.md", "test.yml", "images") or any(x.startswith(".") for x in rel.parts):
+            continue
+        digest.update(rel.as_posix().encode() + b"\0" + path.read_bytes() + b"\0")
+    return "sha256:" + digest.hexdigest()[:16]
+
+
 def material(text: str) -> tuple:
-    """What decides whether test.yml is committed: the result, the steps, and the images."""
+    """What decides whether test.yml is committed: the result, the steps, the images, and the files."""
     result = (re.search(r"^result:\s*(\S+)", text, re.M) or [None, ""])[1]
     steps = (re.search(r"^steps:\n((?:  .*\n?)+)", text, re.M) or [None, ""])[1]
     images = sorted(re.findall(r"^  - (\S+)", (re.search(r"^images:\n((?:  - .*\n?)+)", text, re.M)
                                                or [None, ""])[1], re.M))
-    return result, steps.strip(), tuple(images)
+    files = (re.search(r"^files:\s*(\S+)", text, re.M) or [None, ""])[1]
+    return result, steps.strip(), tuple(images), files
 
 
 def main(argv: list[str]) -> int:
@@ -504,6 +518,7 @@ def main(argv: list[str]) -> int:
         f"tested: {date.today()}", f"result: {result}",
         f"card-kit: {sh(f'git -C {HERE} rev-parse --short HEAD', check=False).stdout.strip() or 'unknown'}",
         f"edgible-cli: {sh('edgible --version', check=False).stdout.strip()}",
+        f"files: {files_hash(src)}",
         f"machine: {platform.system().lower()}/{ARCH.get(platform.machine(), platform.machine())}, docker {docker_version}",
         "images:", *[f"  - {i}" for i in sorted(set(images))],
         "steps:", f"  check-env: {steps['check-env']}", f"  start: {steps['start']}",

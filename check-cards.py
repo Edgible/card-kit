@@ -22,6 +22,7 @@ say pass only when no step failed, and name no hostname.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import re
 import sys
@@ -34,6 +35,27 @@ from jsonschema.exceptions import ValidationError
 SCHEMA_PATH = Path(__file__).resolve().parent / "card.schema.json"
 TEST_SCHEMA_PATH = Path(__file__).resolve().parent / "test.schema.json"
 HOSTNAME = re.compile(r"[a-z0-9-]+\.[a-z0-9-]+\.edgible\.com|\b\d{1,3}(?:\.\d{1,3}){3}\b")
+
+
+def files_hash(card_dir: Path) -> str:
+    """The fingerprint test-card writes as files: in test.yml, from the same function."""
+    spec = importlib.util.spec_from_file_location("test_card", Path(__file__).resolve().parent / "test-card.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.files_hash(card_dir)
+
+
+def freshness(card_dir: Path) -> str:
+    """Why test.yml may not describe these files, or "" when it does or there is no test.yml."""
+    path = card_dir / "test.yml"
+    if not path.is_file():
+        return ""
+    recorded = (re.search(r"^files:\s*(\S+)", path.read_text(), re.M) or [None, ""])[1]
+    if not recorded:
+        return "test.yml has no files: fingerprint; run test-card to record one"
+    if recorded != files_hash(card_dir):
+        return "the card's files changed since test.yml was written; run test-card again"
+    return ""
 
 
 def card_paths(argv: list[str]) -> list[Path]:
@@ -175,6 +197,9 @@ def main(argv: list[str]) -> int:
     test_validator = Draft202012Validator(
         json.loads(TEST_SCHEMA_PATH.read_text()), format_checker=Draft202012Validator.FORMAT_CHECKER
     )
+    # --fresh: a card whose files changed since its test.yml fails. Without it, that is a note.
+    fresh = "--fresh" in argv
+    argv = [a for a in argv if a != "--fresh"]
     failed = False
     for path in card_paths(argv):
         try:
@@ -186,6 +211,11 @@ def main(argv: list[str]) -> int:
                 )
             validator.validate(card)
             errors = convention_errors(path.parent, card) + test_errors(path.parent, card, test_validator)
+            stale = freshness(path.parent)
+            if stale and fresh:
+                errors.append(stale)
+            elif stale:
+                print(f"note {path}: {stale}")
             if errors:
                 for error in errors:
                     print(f"{path}: {error}", file=sys.stderr)

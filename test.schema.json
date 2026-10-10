@@ -38,6 +38,11 @@
       "minLength": 1,
       "description": "edgible --version."
     },
+    "files": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{16}$",
+      "description": "A fingerprint of the card's files when it was tested: all but README.md, images/, test.yml, and hidden files."
+    },
     "machine": {
       "type": "string",
       "minLength": 1,
