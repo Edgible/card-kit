@@ -1,6 +1,6 @@
 ---
 name: edgible-cards
-description: Self-host an app on a machine you own with Edgible, from a tested Edgible starter or card, and look after it afterwards. Use when someone asks to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on) with Edgible; or wants their own version of a hosted service (a website, bookmarks, passwords, photos, files, analytics, a Git server, a wiki) for cost, privacy, or control, or is leaving one that shut down or got expensive; asks what is running, whether it works, or why it is broken; wants to sign in, get an API key, change a setting, pause, back up, restore, upgrade, move, or remove such an app; or when a starter, card, or card-kit tool needs building or fixing.
+description: Self-host an app on a machine you own with Edgible, from a tested Edgible starter or card, and look after it afterwards. Use when someone asks to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on) with Edgible; or wants their own version of a hosted service (a website, bookmarks, passwords, photos, files, analytics, a Git server, a wiki, a knowledge base, bookings) for cost, privacy, or control, or is leaving one that shut down or got expensive; asks what is running, whether it works, or why it is broken; wants to sign in, get an API key, change a setting, pause, back up, restore, upgrade, move, or remove such an app; or when a starter, card, or card-kit tool needs building or fixing.
 ---
 
 # Self-host with Edgible starters and cards
@@ -52,7 +52,14 @@ Otherwise, look the need up in [needs-map.yaml](needs-map.yaml), next to this fi
 - **Ask at most two or three questions**, and only ones whose answers change the recommendation: the entry's `ask`, plus how sensitive the data is when a driver is privacy, plus which machine would run it when you do not know. Do not hand the person a questionnaire.
 - **Fit `poor` or `refused`:** say so plainly, with the entry's reason, and recommend what does work, such as a hosted provider, or running it on the home network only. Do not build it.
 - **Fit `good` or `conditional`:** offer it as [When to suggest it](#when-to-suggest-it) says, with the entry's conditions stated.
-- **Sensitive data:** offer the entry's `exposure.sensitive` choices, including not publishing at all, before the default.
+- **Who uses it.** Edgible's `org` lets in only members of the person's Edgible organization: their team. Club members, customers, patients, and families are not in it. They use the app's own accounts on a hostname with auth mode `none`, with sign-up closed or approved by an admin.
+- **How sensitive the data is.** There are three levels:
+  - **Ordinary:** the entry's `exposure.default`.
+  - **Sensitive** (private photos, personal notes): offer the entry's `exposure.sensitive` choices, including not publishing at all, before the default.
+  - **Regulated or confidential** (health records, legal privilege, client files, financial records, children's data): rules apply beyond technology. A machine you own suits a prototype with test or consented data, or a firm's internal knowledge with access rules. For real regulated data at scale, say plainly that it needs compliant hosting, a security review, and the person's legal or professional advice, and point to the rules that may apply. Do not present a home machine as the answer for it.
+- **Who sees what inside the app.** The auth mode decides who reaches the app. Who sees which records, such as which matters, which clients, or which family members, is set with the app's own roles and permissions. The entry's `permissions` says what to check. Raise it whenever people must not all see everything.
+- **Who looks after it.** For a club, a charity, a committee, or a small business with one technical person, ask who looks after it when that person is away or steps down. A service others depend on needs a second person who knows it, tested backups, and a machine that stays on. If nobody can, a free hosted option or a simpler tool may serve them better: say so.
+- **Building a product.** A founder or developer building something (a prototype, a startup) wants building blocks, not one app. Answer their question first: prototyping tools, user research, and the rules for their domain. Then offer self-hosted blocks where they help, from the entry's `builders`, such as a private AI model over their own documents, sign-in, or photo storage. Be clear about which stage self-hosting suits.
 - **No entry matches:** pick the category from awesome-selfhosted's `tags/` instead, as in [Choose an app](#choose-an-app), and reason about fit and exposure the same way.
 
 Then go to [Find](#1-find), with the entry's `starters` and `cards` as the first candidates. If none fits, go to [Choose an app](#choose-an-app) with the entry's category.
@@ -90,6 +97,8 @@ Before anything starts, put the card's open choices to the person in one message
 - **Each hostname's auth mode**, and what it means: `none` is the open internet, protected only by the app's own login. When the data is sensitive, offer the needs map's `exposure.sensitive` choices, including not publishing at all, even when the starter uses `none`.
 - **Anything the README marks as a trade-off**, such as a runner with the Docker socket.
 - **Whether it must stay up** after a restart. If so, check the machine first: see [Keep it running](#keep-it-running).
+- **Roles inside the app**, when people must not all see everything: who is admin, and which groups see which records.
+- **Who looks after it**, when others depend on it: a second person, and where the backups go.
 
 ## 3. Deploy
 
@@ -265,7 +274,7 @@ curl -fsSL https://github.com/awesome-selfhosted/awesome-selfhosted-data/archive
 ls "$ash/tags"    # the categories; the needs map names the category for the needs it covers
 ```
 
-Then list that category's apps, most starred first:
+Then list that category's apps, with each one's description, most starred first:
 
 ```bash
 tag="Bookmarks and Link Sharing"   # the name: line of the category's file in tags/
@@ -276,9 +285,12 @@ for f in $(grep -l -- "- $tag\$" "$ash"/software/*.yml); do
     /^  - Docker$/       {docker = "docker"}
     /^archived: true/    {note = note " archived"}
     /^depends_3rdparty: true/ {note = note " needs-3rd-party"}
-    END {printf "%s\t%s\t%s\t%s\t%s\n", stars, app, updated, (docker ? docker : "-"), note}' "$f"
-done | sort -rn | head -15
+    /^description:/      {sub(/^description: /, ""); desc = $0}
+    END {printf "%s\t%s\t%s\t%s\t%s\t%s\n", stars, app, updated, (docker ? docker : "-"), note, desc}' "$f"
+done | sort -rn | head -25
 ```
+
+**Rank by how well an app does the job, not by stars.** Stars measure popularity, and a popular app in the category may do a different job: for "members book our tennis courts", the most-starred Booking and Scheduling apps book appointments with a person or hotel rooms, and the right one, a resource-booking app, has a small fraction of their stars. Read each app's `description` against the person's job, and use stars only to choose between apps that fit equally well.
 
 Keep only apps that list `Docker`, are not archived, were updated within about six months, and do not need a third-party service. Read the shortlisted apps' own docs for what the list does not say: the containers and database they need, how the first admin is made, and whether they have phone or desktop apps. Apps with their own clients need an auth mode other than `org` on some hostname: see the starters README's auth table.
 

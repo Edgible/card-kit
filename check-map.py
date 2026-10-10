@@ -4,8 +4,9 @@
     ../card-kit/run check-map          # from any repo, with card-kit beside it
     ./run check-map                    # from card-kit itself
 
-Each entry in skills/edgible-cards/needs-map.yaml must have every field, a fit rating the
-skill knows, and both exposure choices. Its category must be a category name in
+Each entry in skills/edgible-cards/needs-map.yaml must have every required field, no field
+the map does not define, a fit rating the skill knows, and the default and sensitive
+exposure choices (regulated is optional). Its category must be a category name in
 awesome-selfhosted's data, which renames one now and then. Its starters and cards must
 exist in Edgible/starters and Edgible/cards. It also lists the starters and cards that no
 entry names, so a new one gets a place in the map.
@@ -27,6 +28,8 @@ import yaml
 MAP = Path(__file__).resolve().parent / "skills" / "edgible-cards" / "needs-map.yaml"
 TAGS = "https://github.com/awesome-selfhosted/awesome-selfhosted-data/archive/refs/heads/master.tar.gz"
 FIELDS = {"category", "jobs", "replaces", "drivers", "fit", "exposure", "machine", "starters", "cards", "ask"}
+OPTIONAL = {"permissions", "builders"}
+EXPOSURE = {"default", "sensitive", "regulated"}
 FITS = {"good", "conditional", "poor", "refused"}
 
 
@@ -58,13 +61,14 @@ def main() -> int:
     for e in entries:
         c = e.get("category", "?")
         problems += [f"{c}: no {k}" for k in sorted(FIELDS - set(e))]
-        problems += [f"{c}: unknown field {k}" for k in sorted(set(e) - FIELDS)]
+        problems += [f"{c}: unknown field {k}" for k in sorted(set(e) - FIELDS - OPTIONAL)]
         if c not in known:
             problems.append(f"{c}: not a category in awesome-selfhosted")
         if e.get("fit", {}).get("rating") not in FITS:
             problems.append(f"{c}: fit rating must be one of {', '.join(sorted(FITS))}")
         if not {"default", "sensitive"} <= set(e.get("exposure", {})):
             problems.append(f"{c}: exposure needs default and sensitive")
+        problems += [f"{c}: unknown exposure {k}" for k in sorted(set(e.get("exposure", {})) - EXPOSURE)]
         problems += [f"{c}: no starter {s} in Edgible/starters" for s in e.get("starters", []) if s not in starters]
         problems += [f"{c}: no card {s} in Edgible/cards" for s in e.get("cards", []) if s not in card_names]
     for p in problems:
