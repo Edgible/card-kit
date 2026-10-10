@@ -9,7 +9,8 @@
 #   replaces   hosted services people leave for it. A product name is the strongest signal.
 #   drivers    why people self-host it, strongest first: cost, privacy, control, shut-down
 #              (a service that closed or got worse), compliance, local (must run at home)
-#   fit        good, conditional, poor, or refused, for Edgible: a machine you own, published
+#   fit        good, conditional, poor, or refused, for Edgible: a machine you control, at home,
+#              in the office, or a small cloud server in your own account, published
 #              through Edgible's gateway. why says what decides it.
 #   exposure   how to publish it. default is the usual choice. sensitive is for when the person
 #              says the data is private or sensitive.
@@ -67,7 +68,7 @@
   exposure:
     default: none with the app's own login, because desktop and phone sync clients cannot pass an Edgible sign-in
     sensitive: org for the web only, or not published and synced on the home network
-    regulated: "client or patient files need the firm's or practice's rules on where data may be held; a machine you own can suit, with access rules, backups, and advice"
+    regulated: "client or patient files need the firm's or practice's rules on where data may be held; a machine you control can suit, with access rules, backups, and advice; a cloud server in the firm's own account and an allowed region often suits better than an office PC"
   permissions: "shared folders and groups decide who sees which files; set them per team or client"
   machine: disk for every synced file, and a backup
   starters: []
@@ -91,15 +92,15 @@
   jobs: [members book our courts or rooms, schedule games or matches, arrange a time that suits everyone, let customers book appointments with us]
   replaces: [court booking apps, Calendly, Doodle, Google Calendar booking pages]
   drivers: [cost, control]
-  fit: {rating: conditional, why: "works well, but a club or community depends on it: it needs a machine that stays on and someone besides one volunteer to look after it"}
+  fit: {rating: conditional, why: "works well, but a club or community depends on it: it needs a machine that stays on, usually a small cloud server rather than a volunteer's computer, and someone besides one volunteer to look after it"}
   exposure:
     default: none with the app's own member accounts, because members and customers are not in your Edgible organization; sign-up closed or approved by an admin
     sensitive: the same; members' contact details stay in the app
   permissions: "admins set booking rules, such as length, how far ahead, and who may book which resource"
-  machine: always on; little else
+  machine: always on, so usually a small cloud server; little else
   starters: []
   cards: []
-  ask: ["who looks after it when you step down?", "is there a machine that stays on, and do bookings need payment?"]
+  ask: ["who looks after it when you step down?", "a home machine, or a small cloud server at a few dollars a month? and do bookings need payment?"]
 
 - category: Analytics
   jobs: [see who visits my website, stop paying for analytics, analytics without cookies or a consent banner, GDPR-friendly analytics]
@@ -118,11 +119,11 @@
   jobs: [cheaper hosting for my business website, edit my website without a developer, a website with members or restricted content, move off Squarespace or Wix]
   replaces: [Squarespace, Wix, WordPress.com, managed WordPress hosting]
   drivers: [cost, control]
-  fit: {rating: conditional, why: "good for a CMS on a machine that stays on; a static site is better on free static hosting; a site that earns money needs someone to keep it up"}
+  fit: {rating: conditional, why: "good for a CMS on a machine that stays on, usually a small cloud server; a static site is better on free static hosting; a site that earns money needs someone to keep it up"}
   exposure:
     default: the site on none; its editor or admin on org where the app allows a separate hostname
     sensitive: n/a, a website is public
-  machine: always on, with a reliable connection
+  machine: always on, with a reliable connection, so usually a small cloud server
   starters: [wordpress]
   cards: [website, accounts]
   ask: ["is the site static, or edited in a CMS?", "does it have members or paid content?"]
@@ -131,7 +132,7 @@
   jobs: [start a blog or newsletter, a blog with paid members, leave Substack or Medium]
   replaces: [Substack, Medium, Ghost(Pro), Beehiiv]
   drivers: [control, cost]
-  fit: {rating: good, why: "fine on a machine that stays on; newsletters need an outside email sending service"}
+  fit: {rating: good, why: "fine on a machine that stays on, such as a small cloud server; newsletters need an outside email sending service"}
   exposure:
     default: the blog on none, the admin behind the app's own login
     sensitive: n/a, a blog is public
@@ -162,7 +163,7 @@
     default: sign-in pages on none, the admin console on org (the accounts card)
     sensitive: the same, with the admin console on org only
   permissions: "roles and organizations in the identity app decide what each signed-in person may see; the content must be served by something that checks them"
-  builders: "sign-up, sign-in, and a user list for a product prototype, kept on a machine you own"
+  builders: "sign-up, sign-in, and a user list for a product prototype, kept on a machine you control"
   machine: always on
   starters: []
   cards: [accounts]
@@ -188,7 +189,7 @@
   jobs: [help new staff learn what we know, a searchable library of our past work and best practices, onboarding for new people, turn our documents into answers]
   replaces: [Guru, Notion, Confluence, SharePoint, legal and professional knowledge platforms]
   drivers: [privacy, control, cost]
-  fit: {rating: good, why: "internal users suit org exactly; confidential material is the strongest reason to keep it on a machine you own"}
+  fit: {rating: good, why: "internal users suit org exactly; confidential material is the strongest reason to keep it on a machine you control, in the office or a cloud server in the firm's own account"}
   exposure:
     default: org
     sensitive: org
@@ -217,7 +218,7 @@
   jobs: [scan and organise paper documents, go paperless, search my invoices and letters, edit and convert PDFs privately]
   replaces: [Evernote scanning, Adobe Acrobat online, online PDF tools]
   drivers: [privacy, control]
-  fit: {rating: good, why: "documents are often sensitive, which suits a machine you own"}
+  fit: {rating: good, why: "documents are often sensitive, which suits a machine you control"}
   exposure:
     default: org
     sensitive: org, or not published
