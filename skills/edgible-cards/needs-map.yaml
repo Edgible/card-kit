@@ -15,8 +15,7 @@
 #   exposure   how to publish it. default is the usual choice. sensitive is for when the person
 #              says the data is private or sensitive.
 #   machine    what the machine needs beyond Docker
-#   starters   Edgible starters for it (github.com/Edgible/starters)
-#   cards      Edgible cards that include it (github.com/Edgible/cards)
+#   cards      Edgible cards for it (github.com/Edgible/cards): app cards first, then patterns
 #   ask        the one or two questions whose answers change the recommendation
 #
 # Optional:
@@ -31,7 +30,7 @@
 #   builders            how a founder or developer uses it as a building block for a product
 #
 # Apps are not listed: the skill's Choose an app step ranks them from awesome-selfhosted's data,
-# or from the entry's find sources, so they stay current. Starters and cards are hints. Find lists the current ones.
+# or from the entry's find sources, so they stay current. Cards are hints. Find lists the current ones.
 #
 # Where Edgible ends TLS, and what its gateway can see, is in Edgible's docs. Link to them
 # when someone asks. Do not state it from memory.
@@ -45,8 +44,7 @@
     default: web interface on org; browser extensions and phone apps cannot pass an Edgible sign-in, so their hostname is none with the app's own login, or api-key if the app's clients can send a header
     sensitive: org only, and save from the browser at home
   machine: little; page archiving needs disk
-  starters: [linkding]
-  cards: []
+  cards: [linkding]
   ask: ["read later with saved page copies, or just links?", "do you save from a phone?"]
 
 - category: Photo Galleries
@@ -55,14 +53,13 @@
   drivers: [privacy, cost, control]
   fit: {rating: conditional, why: "good with enough disk and a backup plan; photos are irreplaceable, so the backup is not optional"}
   exposure:
-    default: none, with the app's own login, because phone backup apps cannot pass an Edgible sign-in (the immich starter does this)
+    default: none, with the app's own login, because phone backup apps cannot pass an Edgible sign-in (the immich card does this)
     sensitive: "offer three: not published (back up on home Wi-Fi only), org for the web with phone uploads at home, or none with a strong login and prompt updates. Add disk encryption and an encrypted off-site backup."
     regulated: "photos of patients, clients, or children carry legal duties: a prototype with consented or test photos only; real data needs compliant hosting and advice"
   permissions: "albums and partner sharing decide which family members see which photos; check sharing defaults before inviting people"
   builders: "a photo store with face and place search, for a product prototype that works with people's photos"
   machine: lots of disk (library plus about 20% for thumbnails); 6 GB memory for Immich; a GPU helps face search but is optional
-  starters: [immich]
-  cards: []
+  cards: [immich]
   ask: ["how sensitive are they, and do you need them away from home?", "how much space does your library take?"]
 
 - category: File Transfer & Synchronization
@@ -76,7 +73,6 @@
     regulated: "client or patient files need the firm's or practice's rules on where data may be held; a machine you control can suit, with access rules, backups, and advice; a cloud server in the firm's own account and an allowed region often suits better than an office PC"
   permissions: "shared folders and groups decide who sees which files; set them per team or client"
   machine: disk for every synced file, and a backup
-  starters: []
   cards: []
   ask: ["sync to desktop and phone, or a web folder is enough?", "who shares it?"]
 
@@ -86,11 +82,10 @@
   drivers: [control, cost, privacy]
   fit: {rating: conditional, why: "the stakes are high: losing the server or its backup locks everyone out; a hosted manager is often the safer choice for people who will not run backups"}
   exposure:
-    default: none with the app's own login and two-factor, because browser extensions and phone apps cannot pass an Edgible sign-in (the vaultwarden starter)
+    default: none with the app's own login and two-factor, because browser extensions and phone apps cannot pass an Edgible sign-in (the vaultwarden card)
     sensitive: the same, with registration closed, two-factor required, and tested backups
   machine: little; an always-on machine and a backup are essential
-  starters: [vaultwarden]
-  cards: []
+  cards: [vaultwarden]
   ask: ["who will check that backups work?"]
 
 - category: Booking and Scheduling
@@ -103,7 +98,6 @@
     sensitive: the same; members' contact details stay in the app
   permissions: "admins set booking rules, such as length, how far ahead, and who may book which resource"
   machine: always on, so usually a small cloud server; little else
-  starters: []
   cards: []
   ask: ["who looks after it when you step down?", "a home machine, or a small cloud server at a few dollars a month? and do bookings need payment?"]
 
@@ -113,11 +107,10 @@
   drivers: [privacy, compliance, cost]
   fit: {rating: good, why: small and well suited}
   exposure:
-    default: dashboard on org; the tracking script on none, because every visitor's browser loads it (the umami starter)
+    default: dashboard on org; the tracking script on none, because every visitor's browser loads it (the umami card)
     sensitive: the same
   machine: little
-  starters: [umami]
-  cards: [website]
+  cards: [umami, website]
   ask: ["one site or several?"]
 
 - category: Content Management Systems (CMS)
@@ -129,8 +122,7 @@
     default: the site on none; its editor or admin on org where the app allows a separate hostname
     sensitive: n/a, a website is public
   machine: always on, with a reliable connection, so usually a small cloud server
-  starters: [wordpress]
-  cards: [website, accounts]
+  cards: [wordpress, website, accounts]
   ask: ["is the site static, or edited in a CMS?", "does it have members or paid content?"]
 
 - category: Blogging Platforms
@@ -142,7 +134,6 @@
     default: the blog on none, the admin behind the app's own login
     sensitive: n/a, a blog is public
   machine: always on
-  starters: []
   cards: []
   ask: ["newsletter emails too?", "paid members?"]
 
@@ -155,7 +146,6 @@
     default: none
     sensitive: n/a
   machine: n/a
-  starters: []
   cards: [website]
   ask: ["does anything need a login or an editor?"]
 
@@ -170,7 +160,6 @@
   permissions: "roles and organizations in the identity app decide what each signed-in person may see; the content must be served by something that checks them"
   builders: "sign-up, sign-in, and a user list for a product prototype, kept on a machine you control"
   machine: always on
-  starters: []
   cards: [accounts]
   ask: ["who signs in: people you invite, or the public?", "is the content served by something that checks the sign-in?"]
 
@@ -186,7 +175,6 @@
   permissions: "books, spaces, or page roles decide who reads and edits what; set them before importing confidential material"
   builders: "a documentation or help centre for a product"
   machine: little
-  starters: []
   cards: []
   ask: ["for your team, or public?"]
 
@@ -202,7 +190,6 @@
   permissions: "need-to-know rules, such as a law firm's ethical walls, are set in the app's groups; Edgible's org only decides who is in the team"
   builders: "a knowledge base behind a product's help or onboarding"
   machine: disk for the library; memory for search, and much more when a local AI model answers questions (see the GenAI entry)
-  starters: []
   cards: [assistant]
   ask: ["roughly how much material, and in what formats?", "must some people be kept from some material?"]
 
@@ -215,7 +202,6 @@
     default: org for the web; none with the app's login when its phone app must sync
     sensitive: org, or not published
   machine: little
-  starters: []
   cards: []
   ask: ["do you need a phone app?"]
 
@@ -230,8 +216,7 @@
     regulated: "documents with client, patient, or financial data: org, with the app's per-user or per-group permissions, encrypted backups, and the person's professional rules on retention"
   permissions: "owners, groups, and per-document permissions decide who sees which documents"
   machine: disk for the documents; OCR uses memory
-  starters: [stirling-pdf]
-  cards: []
+  cards: [stirling-pdf]
   ask: ["archive documents, or work on PDFs?"]
 
 - category: Feed Readers
@@ -243,8 +228,7 @@
     default: org for the web; reader apps use the app's API and cannot pass an Edgible sign-in, so their hostname is none with the app's login
     sensitive: org only
   machine: little
-  starters: [miniflux]
-  cards: []
+  cards: [miniflux]
   ask: ["do you read on a phone app?"]
 
 - category: Media Streaming - Multimedia Streaming
@@ -253,11 +237,10 @@
   drivers: [control, cost]
   fit: {rating: good, why: "the web interface works through Edgible; native TV and phone apps may not pass an Edgible sign-in"}
   exposure:
-    default: org for the web (the jellyfin starter); native apps on the home network
+    default: org for the web (the jellyfin card); native apps on the home network
     sensitive: org, or home network only
   machine: disk for the library; transcoding is heavy on CPU, a GPU helps
-  starters: [jellyfin]
-  cards: []
+  cards: [jellyfin]
   ask: ["which devices do you watch on?"]
 
 - category: Internet of Things (IoT)
@@ -269,7 +252,6 @@
     default: org for the web interface; the companion phone apps cannot pass an Edgible sign-in, so they need the app's own login on a hostname without one
     sensitive: org only, and the phone apps at home
   machine: always on, at home, on the devices' network (host networking for discovery)
-  starters: []
   cards: []
   ask: ["which devices or brands do you have?", "control from outside the home, or only at home?"]
 
@@ -282,7 +264,6 @@
     default: org only
     sensitive: org only, or not published
   machine: always on, at home, disk for recordings; object detection wants a GPU or accelerator
-  starters: []
   cards: []
   ask: ["how many cameras, and which kind?"]
 
@@ -295,7 +276,6 @@
     default: the editor on org; webhook paths on none, because the services calling them cannot sign in
     sensitive: org, with webhooks only where needed
   machine: always on
-  starters: []
   cards: [n8n]
   ask: ["do other services need to call it with webhooks?"]
 
@@ -311,7 +291,6 @@
   permissions: "knowledge bases and groups decide which documents each person's questions can draw on; with need-to-know rules, such as a law firm's ethical walls, one shared knowledge base is wrong"
   builders: "a private model and document chat for a prototype, so early users' data does not go to an outside AI service"
   machine: much memory; a GPU or Apple Silicon for anything but small models
-  starters: []
   cards: [assistant, litellm]
   find: "awesome-selfhosted lists only a few; also GitHub repositories tagged local-llm or llm-inference, most starred and recently updated"
   ask: ["what hardware do you have?", "chat, documents, or an API for your own apps?"]
@@ -328,8 +307,7 @@
   permissions: "every tool the server offers is something the assistant can do with the person's data; offer read-only tools first, and ask before tools that change or delete things"
   builders: "the quickest way to let early users try an MCP server: publish it from the developer's machine or a small cloud server, without building hosting"
   machine: "next to the data or tools it reaches; always on if others use it. Most packaged servers speak stdio, so publishing one needs a bridge container that serves it over Streamable HTTP; a server that already speaks HTTP needs none"
-  starters: [mcp-bridge]
-  cards: []
+  cards: [mcp-bridge]
   find: "the official MCP Registry (https://registry.modelcontextprotocol.io/v0/servers?search=<word>): servers listed with packages run on your own machine and are the ones to publish, servers with only remotes are already hosted; also GitHub repositories tagged mcp-server"
   ask: ["which assistant will connect to it: Claude Code, Claude's apps, or something else?", "should it only read, or also change things?"]
 
@@ -344,7 +322,6 @@
     sensitive: not published, or api-key only; embeddings can reveal the text they came from, so treat them like the documents
   builders: "a free, private vector store for a prototype RAG or agent app, moved to a bigger machine later without changing the code"
   machine: memory grows with the collection; fast disk
-  starters: []
   cards: []
   find: "GitHub repositories tagged vector-database, most starred and recently updated (Weaviate, Qdrant, Milvus, Chroma), and Postgres with pgvector when the app already uses Postgres"
   ask: ["how many documents or vectors, roughly?", "what will call it, and from where?"]
@@ -361,7 +338,6 @@
     regulated: "do not let it answer from client, patient, or financial records; send those questions to a person"
   permissions: "a public bot answers anyone, so its knowledge base must hold only what anyone may see"
   machine: always on, so usually a small cloud server; a GPU only for a local model
-  starters: []
   cards: [n8n]
   find: "awesome-selfhosted's GenAI category, and GitHub repositories tagged chatbot or rag with a website widget or chat-platform integration (for example Dify, Flowise, Typebot)"
   ask: ["who will talk to it: customers, members, or your team?", "which model: a hosted API with a spending limit, or a local one?"]
@@ -378,7 +354,6 @@
   permissions: "agents act with the credentials they are given: give each one only the keys and tools it needs"
   builders: "a fast way to prototype an AI feature or product and let early users try it through an API"
   machine: modest; the model runs elsewhere unless it is local
-  starters: []
   cards: [n8n, litellm]
   find: "GitHub repositories tagged ai-agents, llm-app, or low-code with a Docker image, most starred and recently updated (for example Dify, Flowise, Langflow)"
   ask: ["what should the agent or app do, and for whom?", "which models: hosted APIs or local?"]
@@ -394,7 +369,6 @@
     sensitive: the same, with a retention limit on stored prompts
     regulated: "prompt logs inherit the data's rules: if users send health or client data, the logs are that data"
   machine: a database that grows with traffic; disk for logs
-  starters: []
   cards: []
   find: "GitHub repositories tagged llmops or llm-observability, and tensorchord/Awesome-LLMOps (for example Langfuse, Arize Phoenix, Opik)"
   ask: ["roughly how many requests a day?", "do prompts contain users' personal data?"]
@@ -409,7 +383,6 @@
     default: "org: tools such as ComfyUI have no login of their own, so never none; an API for other apps on api-key"
     sensitive: org only, or not published
   machine: a GPU with plenty of memory, or Apple Silicon; lots of disk for models
-  starters: []
   cards: []
   find: "awesome-selfhosted's GenAI and Media Management categories, and GitHub repositories tagged comfyui, stable-diffusion, whisper, or text-to-speech"
   ask: ["what GPU or Mac do you have?", "images, transcription, or voice?"]
@@ -420,11 +393,10 @@
   drivers: [control, cost, privacy]
   fit: {rating: good, why: "git and API tokens cannot pass an Edgible sign-in, so the forge's own login protects it"}
   exposure:
-    default: none with the app's own login and registration closed; SSH as a tcp app (the gitea starter)
+    default: none with the app's own login and registration closed; SSH as a tcp app (the gitea card)
     sensitive: the same; the web alone could be org, but git would stop working
   machine: little
-  starters: [gitea]
-  cards: [ci]
+  cards: [gitea, ci]
   ask: ["just you, or a team?"]
 
 - category: Software Development - Continuous Integration & Deployment
@@ -436,7 +408,6 @@
     default: the runner publishes nothing; it connects out to the forge
     sensitive: the same, with the runner on its own machine
   machine: CPU, memory and disk for builds
-  starters: []
   cards: [ci]
   ask: ["one trusted machine, or a separate one for builds?"]
 
@@ -449,8 +420,7 @@
     default: dashboard on org; a public status page on none
     sensitive: org
   machine: little; a second machine
-  starters: [uptime-kuma]
-  cards: [website]
+  cards: [uptime-kuma, website]
   ask: ["a public status page, or alerts for you?"]
 
 - category: Calendar & Contacts
@@ -462,7 +432,6 @@
     default: none with the app's own login, for the sync clients
     sensitive: the same, or sync on the home network only
   machine: little
-  starters: []
   cards: []
   ask: ["which phones and computers must sync?"]
 
@@ -472,11 +441,10 @@
   drivers: [cost, control]
   fit: {rating: conditional, why: "game servers are tcp or udp apps, which Edgible publishes on ports 20000 to 29999 with no auth mode; the game's own whitelist decides who gets in"}
   exposure:
-    default: tcp or udp with no auth mode, and the game's whitelist on (the minecraft starter)
+    default: tcp or udp with no auth mode, and the game's whitelist on (the minecraft card)
     sensitive: n/a
   machine: CPU and memory grow with players; always on while people play
-  starters: [minecraft]
-  cards: []
+  cards: [minecraft]
   ask: ["which game, and Java or Bedrock players?", "how many players?"]
 
 - category: Communication - Email - Complete Solutions
@@ -488,7 +456,6 @@
     default: n/a
     sensitive: n/a
   machine: n/a
-  starters: []
   cards: []
   ask: []
 
@@ -496,11 +463,10 @@
   jobs: [block ads on every device, my own DNS server, a Pi-hole I can use away from home]
   replaces: [NextDNS, ad-blocking DNS services]
   drivers: [privacy, control]
-  fit: {rating: refused, why: "a DNS resolver open to the internet can be abused by anyone; it is on the starters README's not-a-starter list. Run it on the home network only, without Edgible, or use a hosted filtering DNS."}
+  fit: {rating: refused, why: "a DNS resolver open to the internet can be abused by anyone; it is on the cards README's list of what is not an app card. Run it on the home network only, without Edgible, or use a hosted filtering DNS."}
   exposure:
     default: n/a, not published
     sensitive: n/a
   machine: n/a
-  starters: []
   cards: []
   ask: []

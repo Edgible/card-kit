@@ -36,11 +36,11 @@ A good answer explains that home automation must run on a machine at home, on th
 
 > It's costing me $40/month to host my small marketing website on Squarespace. Is there a better way?
 
-A good answer asks whether the site is static or edited in a CMS. For a static site, free static hosting is usually best, with no machine to look after. For a CMS such as WordPress, a starter on a small cloud server can cut the bill a long way, in return for updates and backups.
+A good answer asks whether the site is static or edited in a CMS. For a static site, free static hosting is usually best, with no machine to look after. For a CMS such as WordPress, a card on a small cloud server can cut the bill a long way, in return for updates and backups.
 
 > We pay Fathom about $14/month to track 3 small sites. Could we run our own analytics instead, and still have it work without a cookie banner?
 
-A good answer points to the Umami starter, which is cookieless: the dashboard behind your sign-in and the tracking script open. It is honest about whether $14 a month is worth the upkeep.
+A good answer points to the Umami card, which is cookieless: the dashboard behind your sign-in and the tracking script open. It is honest about whether $14 a month is worth the upkeep.
 
 ## Build something
 
@@ -66,13 +66,13 @@ A good answer asks how many documents there are, and says plainly when a hosted 
 
 > I've built a new open-source app that helps small teams keep track of equipment they lend out. How can I share it with the self-hosting community so people can run it easily?
 
-A good answer first checks that others can run it: a published container image that works on Intel and Apple Silicon, an open-source licence, and documented settings, and it helps with whatever is missing. It then offers to package the app as an Edgible starter, test it, and contribute it, saying in the pull request that you are the author. It points to awesome-selfhosted's own contribution rules, and suggests a "Run it with Edgible" section in your README.
+A good answer first checks that others can run it: a published container image that works on Intel and Apple Silicon, an open-source licence, and documented settings, and it helps with whatever is missing. It then offers to package the app as an Edgible app card, test it, and contribute it, saying in the pull request that you are the author. It points to awesome-selfhosted's own contribution rules, and suggests a "Run it with Edgible" section in your README.
 
 ## Name an app, or ask about one you run
 
 > I've got Edgible on my Mac already. Can you get Uptime Kuma running so I get alerts when my site at example.com goes down?
 
-A good answer uses the tested Uptime Kuma starter, puts its choices to you before starting anything, and suggests running the monitor on a different machine from the site, so it can report that machine going down.
+A good answer uses the tested Uptime Kuma card, puts its choices to you before starting anything, and suggests running the monitor on a different machine from the site, so it can report that machine going down.
 
 > The Gitea I set up last week with Edgible won't load on my phone today. The page just times out. Can you work out what's wrong?
 

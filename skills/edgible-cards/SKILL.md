@@ -1,13 +1,13 @@
 ---
 name: edgible-cards
-description: Self-host an app on a machine you control (at home, in the office, or a small cloud server) with Edgible, from a tested Edgible starter or card, and look after it afterwards. Use when someone asks to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on) with Edgible; or wants their own version of a hosted service (a website, bookmarks, passwords, photos, files, analytics, a Git server, a wiki, a knowledge base, bookings) for cost, privacy, or control, or is leaving one that shut down or got expensive; wants AI tools on their own machine or reachable from anywhere (an MCP server, a vector database, a local model, a chatbot, an agent builder); asks what is running, whether it works, or why it is broken; wants to sign in, get an API key, change a setting, pause, back up, restore, upgrade, move, or remove such an app; wants to share an app they built with the self-hosting community; or when a starter, card, or card-kit tool needs building or fixing.
+description: Self-host an app on a machine you control (at home, in the office, or a small cloud server) with Edgible, from a tested Edgible card, and look after it afterwards. Use when someone asks to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on) with Edgible; or wants their own version of a hosted service (a website, bookmarks, passwords, photos, files, analytics, a Git server, a wiki, a knowledge base, bookings) for cost, privacy, or control, or is leaving one that shut down or got expensive; wants AI tools on their own machine or reachable from anywhere (an MCP server, a vector database, a local model, a chatbot, an agent builder); asks what is running, whether it works, or why it is broken; wants to sign in, get an API key, change a setting, pause, back up, restore, upgrade, move, or remove such an app; wants to share an app they built with the self-hosting community; or when a card or card-kit tool needs building or fixing.
 ---
 
-# Self-host with Edgible starters and cards
+# Self-host with Edgible cards
 
-A **starter** is one self-hosted app, tested end to end on a real Edgible serving device: [Edgible/starters](https://github.com/Edgible/starters). A **card** is a pattern of several apps wired together, often across several machines: [Edgible/cards](https://github.com/Edgible/cards). Both use one format, written down in [Edgible/card-kit](https://github.com/Edgible/card-kit), which also holds the tools that check and test them. The card-kit README is the source of truth for the format. Read it rather than guessing.
+A **card** is a self-hosted setup written down so anyone can run it: [Edgible/cards](https://github.com/Edgible/cards). It is one of two types, `metadata.type` in its `card.yml`. An **app card** is one self-hosted app, tested end to end on a real Edgible serving device. A **pattern card** is several apps wired together for a purpose, often across several machines, built from app cards. App cards used to be called starters, in a repo now archived. Both types use one format, written down in [Edgible/card-kit](https://github.com/Edgible/card-kit), which also holds the tools that check and test them. The card-kit README is the source of truth for the format. Read it rather than guessing.
 
-Work from a starter or card whenever one fits. Its README is a tested path, and following it gives the same result for everyone. Improvise only where the card leaves a choice open, and say so when you do.
+Work from a card whenever one fits. Its README is a tested path, and following it gives the same result for everyone. Improvise only where the card leaves a choice open, and say so when you do.
 
 Most people describe a need, not an app. Start with [Understand the need](#understand-the-need), which reads [needs-map.yaml](needs-map.yaml) next to this file, and, when they have not asked to self-host, [When to suggest it](#when-to-suggest-it). A person who names an app goes straight to [Find](#1-find). Steps 1 to 5 set an app up. [After it is running](#after-it-is-running) covers everything after that: what is running, whether it works, fixing it, signing in, changing it, pausing, backing up, upgrading, moving, and removing it.
 
@@ -35,13 +35,13 @@ The person may describe a problem, not a request to self-host: a hosting bill, a
 
 1. Answer the question they asked, with the options side by side: hosted, and self-hosted with Edgible. If one detail decides it, ask that one question.
 2. For self-hosting, be plain about what it costs: they keep the app updated and backed up, it is down while the machine is, and it uses that machine's power and bandwidth.
-3. Name what Edgible would run, from the need's entry in the needs map: its starter or card if one fits ([Find](#1-find)), or the shortlist from [Choose an app](#choose-an-app). Say what its fit and exposure mean for this person.
+3. Name what Edgible would run, from the need's entry in the needs map: its card if one fits ([Find](#1-find)), or the shortlist from [Choose an app](#choose-an-app). Say what its fit and exposure mean for this person.
 4. Do nothing until the person chooses. If they choose self-hosting, continue at [Find](#1-find).
 
 **Example.** "Hosting my small marketing website costs $40 a month. Is there a better way?"
 
 - **If the site is static** (pages, no logins, no editing in a CMS): free static hosting, such as Cloudflare Pages, Netlify, or GitHub Pages, is usually best. It has no machine to keep up and no bill.
-- **If it is edited in a CMS such as WordPress:** the `wordpress` starter on a machine they already own can take the bill to nearly nothing, in return for the upkeep above. A managed WordPress host is the middle way.
+- **If it is edited in a CMS such as WordPress:** the `wordpress` card on a machine they already own can take the bill to nearly nothing, in return for the upkeep above. A managed WordPress host is the middle way.
 - Ask which it is, and recommend from the answer.
 
 Do not suggest self-hosting when the person's problem has nothing to do with running a service.
@@ -53,13 +53,13 @@ Do not suggest self-hosting when the person's problem has nothing to do with run
 - **Never print a secret.** Secrets live in `card.env`. Run `chmod 600` on it. Tell the person where it is and which line holds what they need, such as the admin password, and give them the command that shows that one line.
 - **Run every step the README gives, in order.** Never skip Check. Stop at the first step that fails, and fix it or report it. Do not work around it silently.
 - **Change only `card.env`** for this machine's settings. A change to any other file in a card is a fix: see [Fix a card or card-kit](#fix-a-card-or-card-kit).
-- **Fetch from upstream `main`.** A local clone of a cards or starters repo may be old.
+- **Fetch from upstream `main`.** A local clone of the cards repo may be old.
 
 ## Understand the need
 
 Skip this step when the person names an app ("self-host Miniflux"). Go to [Find](#1-find).
 
-Otherwise, look the need up in [needs-map.yaml](needs-map.yaml), next to this file. Each entry is an awesome-selfhosted category, or, with `source: edgible`, a category Edgible added where that list has none yet, mostly AI tools (MCP servers, vector databases, chatbots, agents). Each has the needs people describe (`jobs`), the services they leave (`replaces`), why they self-host it (`drivers`), how well it suits Edgible (`fit`), how to publish it (`exposure`), what the machine needs, its starters and cards, and the questions that change the answer (`ask`). Match on `jobs` and `replaces`, in the person's words: "Pocket shut down" is Bookmarks and Link Sharing, and "home automation" is Internet of Things (IoT). "Use my MCP server from Claude when I'm away" is AI tools for assistants. Read the whole entry.
+Otherwise, look the need up in [needs-map.yaml](needs-map.yaml), next to this file. Each entry is an awesome-selfhosted category, or, with `source: edgible`, a category Edgible added where that list has none yet, mostly AI tools (MCP servers, vector databases, chatbots, agents). Each has the needs people describe (`jobs`), the services they leave (`replaces`), why they self-host it (`drivers`), how well it suits Edgible (`fit`), how to publish it (`exposure`), what the machine needs, its cards, and the questions that change the answer (`ask`). Match on `jobs` and `replaces`, in the person's words: "Pocket shut down" is Bookmarks and Link Sharing, and "home automation" is Internet of Things (IoT). "Use my MCP server from Claude when I'm away" is AI tools for assistants. Read the whole entry.
 
 - **Ask at most two or three questions**, and only ones whose answers change the recommendation: the entry's `ask`, plus how sensitive the data is when a driver is privacy, plus which machine would run it when you do not know. Do not hand the person a questionnaire.
 - **Fit `poor` or `refused`:** say so plainly, with the entry's reason, and recommend what does work, such as a hosted provider, or running it on the home network only. Do not build it.
@@ -75,39 +75,36 @@ Otherwise, look the need up in [needs-map.yaml](needs-map.yaml), next to this fi
 - **AI tools move fast.** For an AI need, check what is current (the entry's `find` sources) rather than answering from memory, and say how new or settled a tool is.
 - **No entry matches:** pick the category from awesome-selfhosted's `tags/` instead, as in [Choose an app](#choose-an-app), and reason about fit and exposure the same way. For an AI need the list does not cover, use the sources in [Choose an app](#choose-an-app) for AI tools.
 
-Then go to [Find](#1-find), with the entry's `starters` and `cards` as the first candidates. If none fits, go to [Choose an app](#choose-an-app) with the entry's category.
+Then go to [Find](#1-find), with the entry's `cards` as the first candidates. If none fits, go to [Choose an app](#choose-an-app) with the entry's category.
 
 When someone asks what Edgible's gateway can see, or where TLS ends, point to Edgible's documentation. Do not answer from memory.
 
 ## 1. Find
 
-The person names an app ("self-host Miniflux") or describes a need ("something for bookmarks"). Either way, look for a starter or card first. For a need, read each candidate's **Why** to see whether it meets that need.
+The person names an app ("self-host Miniflux") or describes a need ("something for bookmarks"). Either way, look for a card first. For a need, read each candidate's **Why** to see whether it meets that need.
 
-List what exists. Starters and cards are the top-level directories that hold a `card.yml`:
+List what exists. Cards are the top-level directories that hold a `card.yml`, and the repo's README lists them by type, with each one's test status:
 
 ```bash
-for repo in starters cards; do
-  echo "== $repo"
-  gh api "repos/Edgible/$repo/contents" \
-    --jq '.[] | select(.type == "dir" and (.name | startswith(".") | not)) | .name'
-done
+gh api repos/Edgible/cards/contents \
+  --jq '.[] | select(.type == "dir" and (.name | startswith(".") | not)) | .name'
 ```
 
-Read the README of each candidate: the **Why** and **What** sections say what it does, which places (machines) it needs, and the auth mode on each hostname. If a starter fits but the person wants several apps together, the starters README says how to combine starters into a card.
+Read the README of each candidate: the **Why** and **What** sections say what it does, which places (machines) it needs, and the auth mode on each hostname. If an app card fits but the person wants several apps together, the cards README says how to combine app cards into a pattern.
 
-The Edgible catalog (`edgible template list`) has managed templates. Read a template's description for its limits before you offer it. A template's choices are fixed, and a starter or card can be changed.
+The Edgible catalog (`edgible template list`) has managed templates. Read a template's description for its limits before you offer it. A template's choices are fixed, and a card can be changed.
 
 If nothing fits:
 
-- **The person described a need:** go to [Choose an app](#choose-an-app), then [Build a starter](#build-a-starter) for the app they choose.
-- **The person named an app:** go to [Build a starter](#build-a-starter). If that app is unsuitable (archived, no maintained container image, or on the starters README's **What is not a starter** list), say why, and offer alternatives from its category with [Choose an app](#choose-an-app).
+- **The person described a need:** go to [Choose an app](#choose-an-app), then [Build an app card](#build-an-app-card) for the app they choose.
+- **The person named an app:** go to [Build an app card](#build-an-app-card). If that app is unsuitable (archived, no maintained container image, or on the cards README's **What is not an app card** list), say why, and offer alternatives from its category with [Choose an app](#choose-an-app).
 
 ## 2. Decide with the person
 
 Before anything starts, put the card's open choices to the person in one message, with your recommendation for each:
 
 - **Which device runs each place.** `edgible device list` prints the names. One machine can hold every place of a small, trusted setup. Say what the card's README says about keeping places apart.
-- **Each hostname's auth mode**, and what it means: `none` is the open internet, protected only by the app's own login. When the data is sensitive, offer the needs map's `exposure.sensitive` choices, including not publishing at all, even when the starter uses `none`.
+- **Each hostname's auth mode**, and what it means: `none` is the open internet, protected only by the app's own login. When the data is sensitive, offer the needs map's `exposure.sensitive` choices, including not publishing at all, even when the card uses `none`.
 - **Anything the README marks as a trade-off**, such as a runner with the Docker socket.
 - **Whether it must stay up** after a restart. If so, check the machine first: see [Keep it running](#keep-it-running).
 - **Roles inside the app**, when people must not all see everything: who is admin, and which groups see which records.
@@ -119,7 +116,7 @@ Follow the card's README **How** section exactly: Fetch, Edit `card.env`, Check,
 
 - Find `ORG_LABEL` in a hostname `edgible app list` prints: it is the part after the app name, such as `example` in `umami.example.edgible.com`.
 - Check: run `check-env` until it says `no conflicts`. Its fixes can come in more than one pass. Secrets come first, and a moved port can come next once the Compose file resolves. Paste the lines it prints, and read any line that starts with `#` before running it.
-- Publish: if `edgible app create existing --help` lists `--tag`, add `--tag starter=<name>` or `--tag card=<name>` to every app the card publishes, so the deployment can be counted and found later.
+- Publish: if `edgible app create existing --help` lists `--tag`, add `--tag card=<name>` to every app the card publishes, so the deployment can be counted and found later.
 - **Do not look up a hostname before Publish has created it.** Resolvers remember "does not exist" for up to 15 minutes. After Publish, ask Edgible's own nameservers:
 
   ```bash
@@ -173,7 +170,7 @@ docker compose ls --all    # each Compose project, with the path of its Compose 
 edgible app list           # each published app: name, port, device, status
 ```
 
-The path `docker compose ls` prints leads to the card's directory, and `metadata.name` in its `card.yml` names the card. An Edgible app on the same device with the port that the card's `card.env` sets (`<APP>_PORT`) is that card's app. Once apps carry tags, `--tag card=` or `starter=` says so directly. A project named `cardtest-*` is left over from an interrupted `test-card` run, not a deployment. Tell the person, and remove it only if they agree.
+The path `docker compose ls` prints leads to the card's directory, and `metadata.name` in its `card.yml` names the card. An Edgible app on the same device with the port that the card's `card.env` sets (`<APP>_PORT`) is that card's app. Once apps carry tags, `--tag card=` says so directly. A project named `cardtest-*` is left over from an interrupted `test-card` run, not a deployment. Tell the person, and remove it only if they agree.
 
 Answer with a short table: each card, its directory, its apps with hostname and auth mode, and whether each is up.
 
@@ -250,8 +247,8 @@ Then run [Is it working](#is-it-working).
 
    ```bash
    new=$(mktemp -d)
-   curl -fsSL https://github.com/Edgible/starters/archive/refs/heads/main.tar.gz \
-     | tar -xz --strip-components=2 -C "$new" starters-main/umami   # cards: Edgible/cards and cards-main/<card>
+   curl -fsSL https://github.com/Edgible/cards/archive/refs/heads/main.tar.gz \
+     | tar -xz --strip-components=2 -C "$new" cards-main/umami
    diff -ru -x card.env -x images -x test.yml "$dir" "$new"
    diff <(grep -oE '^[A-Z0-9_]+=' "$dir/card.env") <(grep -oE '^[A-Z0-9_]+=' "$new/card.env")
    ```
@@ -280,7 +277,7 @@ Follow the card's README **Tear down**, in order: Unpublish, Stop, Delete the da
 
 ## Choose an app
 
-Use this step only when the person described a need and no starter or card meets it, or when the app they named is unsuitable. Do not pick from memory. Shortlist from [awesome-selfhosted](https://awesome-selfhosted.net), a curated list of free self-hosted software, through its machine-readable data. That data has one YAML file per app, with its categories (`tags`), platforms, licence, stars, last update, and whether it is archived.
+Use this step only when the person described a need and no card meets it, or when the app they named is unsuitable. Do not pick from memory. Shortlist from [awesome-selfhosted](https://awesome-selfhosted.net), a curated list of free self-hosted software, through its machine-readable data. That data has one YAML file per app, with its categories (`tags`), platforms, licence, stars, last update, and whether it is archived.
 
 ```bash
 ash=$(mktemp -d)
@@ -318,18 +315,18 @@ gh api "search/repositories?q=topic:vector-database+pushed:>$(date -v-6m +%F 2>/
   --jq '.items[] | [.stargazers_count, .full_name, .description] | @tsv'
 ```
 
-The registry does not rank or review servers, and many are near-copies. Prefer one from the maker of the tool it connects to, then one whose repository is active and well used, and read what its tools can do before offering it. Most packaged servers speak `stdio` (the registry's `transport`), which only a local client can use: its starter needs a bridge container that serves it over Streamable HTTP.
+The registry does not rank or review servers, and many are near-copies. Prefer one from the maker of the tool it connects to, then one whose repository is active and well used, and read what its tools can do before offering it. Most packaged servers speak `stdio` (the registry's `transport`), which only a local client can use: the `mcp-bridge` app card serves it over Streamable HTTP.
 
-Keep only apps that list `Docker`, are not archived, were updated within about six months, and do not need a third-party service. Read the shortlisted apps' own docs for what the list does not say: the containers and database they need, how the first admin is made, and whether they have phone or desktop apps. Apps with their own clients need an auth mode other than `org` on some hostname: see the starters README's auth table.
+Keep only apps that list `Docker`, are not archived, were updated within about six months, and do not need a third-party service. Read the shortlisted apps' own docs for what the list does not say: the containers and database they need, how the first admin is made, and whether they have phone or desktop apps. Apps with their own clients need an auth mode other than `org` on some hostname: see the cards README's auth table.
 
 Offer two or three candidates in one message. For each, give what it is best at and what it costs to run: containers, database, memory, and the auth trade-off. Recommend one and say why, and let the person choose. A simple app that meets the need usually beats the one with the most features.
 
-## Build a starter
+## Build an app card
 
-When nothing fits, offer to build a starter. First check the starters README's **What is not a starter** list: an open resolver or relay, an app with no maintained container image, or an archived project gets a plain no, with the reason.
+When nothing fits, offer to build an app card. First check the cards README's **What is not an app card** list: an open resolver or relay, an app with no maintained container image, or an archived project gets a plain no, with the reason.
 
-1. Read the [starters README](https://github.com/Edgible/starters#what-a-starter-is) and the [card-kit README](https://github.com/Edgible/card-kit), then copy the shape of the starter closest to the new app.
-2. Follow the format: pinned image versions; every variable, service and volume prefixed with the app's name; no `container_name`; each secret empty with a `# Generate with:` comment; each hostname's auth mode chosen from the starters README's table; and `prepare.sh` when the first visitor would otherwise make the admin.
+1. Read the [cards README](https://github.com/Edgible/cards#what-a-card-is) and the [card-kit README](https://github.com/Edgible/card-kit), then copy the shape of the app card closest to the new app. Set `metadata.type: app`.
+2. Follow the format: pinned image versions; every variable, service and volume prefixed with the app's name; no `container_name`; each secret empty with a `# Generate with:` comment; each hostname's auth mode chosen from the cards README's table; and `prepare.sh` when the first visitor would otherwise make the admin.
 3. Write the README with `card-readme`, and check the files with `check-cards` (see the card-kit README for `run`).
 4. Test it on the person's serving device until it passes: `python3 test-card.py <name> --device <device> --by agent`. Put inputs only a person may fill in `test/inputs.env`, and the app's own end-to-end checks in `test/<name>.sh`.
 5. Deploy it for the person from the tested files. Their app comes first, and contributing is optional.
@@ -338,27 +335,27 @@ When nothing fits, offer to build a starter. First check the starters README's *
 
 When the person wrote the app and wants others to run it easily:
 
-1. **Check that others can run it.** A starter runs a published container image, so the app needs one on a public registry, such as Docker Hub or GitHub Container Registry, with version tags. Build it for both amd64 and arm64, because people run Edgible on Intel servers and on Apple Silicon. The app also needs a licence that lets others run it, and documented settings. If something is missing, say what, and help with that first: a Dockerfile, a multi-architecture build, a release.
-2. **Build the starter** as in [Build a starter](#build-a-starter), from the app's own Compose setup. The author knows its first-run steps, its secrets, and who calls each hostname, which decides the auth mode. Ask them rather than guess.
+1. **Check that others can run it.** An app card runs a published container image, so the app needs one on a public registry, such as Docker Hub or GitHub Container Registry, with version tags. Build it for both amd64 and arm64, because people run Edgible on Intel servers and on Apple Silicon. The app also needs a licence that lets others run it, and documented settings. If something is missing, say what, and help with that first: a Dockerfile, a multi-architecture build, a release.
+2. **Build the app card** as in [Build an app card](#build-an-app-card), from the app's own Compose setup. The author knows its first-run steps, its secrets, and who calls each hostname, which decides the auth mode. Ask them rather than guess.
 3. **Test it** with `test-card` until it passes.
-4. **Contribute it** as in [Contribute](#contribute), and say in the pull request that the person is the app's author. Reviewers judge it by the same checklist as any starter.
-5. **Point to where self-hosters look.** awesome-selfhosted lists free software that meets its own inclusion rules: read its contributing guide before suggesting it. A short "Run it with Edgible" section in the app's README, linking to the starter, helps people find it.
+4. **Contribute it** as in [Contribute](#contribute), and say in the pull request that the person is the app's author. Reviewers judge it by the same checklist as any card.
+5. **Point to where self-hosters look.** awesome-selfhosted lists free software that meets its own inclusion rules: read its contributing guide before suggesting it. A short "Run it with Edgible" section in the app's README, linking to the card, helps people find it.
 
-If the app is one part of a bigger setup, a card that combines it with other starters may suit better.
+If the app is one part of a bigger setup, a pattern card that combines it with other app cards may suit better.
 
 ## Contribute
 
 Offer this, and do it only with the person's yes.
 
-Each repo's `CONTRIBUTING.md` is the process: [Edgible/starters](https://github.com/Edgible/starters/blob/main/CONTRIBUTING.md) for a starter, [Edgible/cards](https://github.com/Edgible/cards/blob/main/CONTRIBUTING.md) for a card. Read it and follow it. Where it differs from what is written here, it wins. In short:
+[CONTRIBUTING.md](https://github.com/Edgible/cards/blob/main/CONTRIBUTING.md) in Edgible/cards is the process. Read it and follow it. Where it differs from what is written here, it wins. In short:
 
 - **Scrub before anything leaves the machine.** Remove device names, hostnames, the organization id, secrets, and the person's own domain from every file. `check-cards` catches some of them, and you check the rest.
-- **Check the name is free:** a 404 from `gh api repos/Edgible/starters/contents/<name>` means it is.
-- **Use a fork** unless the person can push to the Edgible repo: `gh repo fork Edgible/starters --clone`. Work on a branch, and never push to `main`.
+- **Check the name is free:** a 404 from `gh api repos/Edgible/cards/contents/<name>` means it is.
+- **Use a fork** unless the person can push to the Edgible repo: `gh repo fork Edgible/cards --clone`. Work on a branch, and never push to `main`.
 - **Fill in the repo's pull request template.** Read `.github/PULL_REQUEST_TEMPLATE.md`, write its sections into the body with the `result:` lines of the passing `test-card` run, tick only the checklist items you actually checked, and tick the box that says an AI agent made it. Pass that as `gh pr create --body-file`.
-- **If you could not make it pass,** do not open a pull request. Offer an issue from the repo's request template instead: read `.github/ISSUE_TEMPLATE/starter-request.md` (or `card-request.md` in cards), fill in its sections with what you tried and where it failed, and run `gh issue create --title "Starter request: <app>" --label starter-request --body-file <file>`.
+- **If you could not make it pass,** do not open a pull request. Offer an issue from the repo's request template instead: read `.github/ISSUE_TEMPLATE/app-request.md` (or `pattern-request.md` for a pattern), fill in its sections with what you tried and where it failed, and run `gh issue create --repo Edgible/cards --title "App request: <app>" --label app-request --body-file <file>`.
 
-A maintainer tests a new starter on their own device before merging. Once merged, the nightly regression keeps testing it.
+A maintainer tests a new card on their own device before merging. Once merged, the nightly regression keeps testing it.
 
 ## Fix a card or card-kit
 
