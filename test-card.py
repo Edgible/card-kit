@@ -563,7 +563,8 @@ def main(argv: list[str]) -> int:
     docker_version = sh("docker version --format '{{.Server.Version}}'", check=False).stdout.strip()
     lines = [
         f"tested: {date.today()}", f"result: {result}",
-        f"card-kit: {sh(f'git -C {HERE} rev-parse --short HEAD', check=False).stdout.strip() or 'unknown'}",
+        # Quoted: a short commit id can be all digits, which YAML would read as a number.
+        f"card-kit: \"{sh(f'git -C {HERE} rev-parse --short HEAD', check=False).stdout.strip() or 'unknown'}\"",
         f"edgible-cli: {sh('edgible --version', check=False).stdout.strip()}",
         f"files: {files_hash(src)}",
         f"machine: {platform.system().lower()}/{ARCH.get(platform.machine(), platform.machine())}, docker {docker_version}",

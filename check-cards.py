@@ -195,6 +195,9 @@ def test_errors(card_dir: Path, card: dict, validator: Draft202012Validator) -> 
         # YAML reads an unquoted date as a date; the schema checks the text.
         if test and not isinstance(test.get("tested"), str) and test.get("tested") is not None:
             test["tested"] = str(test["tested"])
+        # An unquoted short commit id that is all digits reads as a number; it is still an id.
+        if test and isinstance(test.get("card-kit"), int):
+            test["card-kit"] = str(test["card-kit"])
         validator.validate(test)
     except (yaml.YAMLError, ValidationError) as exc:
         return [f"test.yml: {getattr(exc, 'message', exc)}"]
