@@ -244,19 +244,25 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--out", type=Path, required=True, help="directory for the report and transcripts")
     ap.add_argument("--set", type=Path, default=HERE / "held-out.yaml")
     ap.add_argument("--only", nargs="+", default=[], metavar="ID")
+    ap.add_argument("--rotate", type=int, choices=range(7), metavar="DAY",
+                    help="run only the prompts for this day of a 7-day rotation (0 = Monday): prompt i "
+                         "runs on day i mod 7, so each one runs once a week. --rotate today uses today")
     ap.add_argument("--max-turns", type=int, default=20)
     ap.add_argument("--timeout", type=int, default=900)
     ap.add_argument("--mcp", default=shutil.which("edgible-mcp") or "",
                     help="command of a stdio Edgible MCP server whose find and describe tools answering "
                          "sessions may use; default: edgible-mcp on PATH, if any. Pass '' for none")
+    argv = [str(date.today().weekday()) if a == "today" else a for a in argv]
     args = ap.parse_args(argv)
 
     scenarios = [s for s in load_scenarios(args.set) if not args.only or s["id"] in args.only]
+    if args.rotate is not None:
+        scenarios = [s for i, s in enumerate(scenarios) if i % 7 == args.rotate]
     if not scenarios:
         sys.exit("no prompts to run")
     args.out.mkdir(parents=True, exist_ok=True)
     git = lambda *a: subprocess.run(["git", "-C", str(SKILL_DIR), *a], capture_output=True, text=True).stdout.strip()
-    meta = {"date": str(date.today()), "card_kit": git("rev-parse", "--short", "HEAD") or "unknown",
+    meta = {"date": str(date.today()), "rotation_day": args.rotate, "card_kit": git("rev-parse", "--short", "HEAD") or "unknown",
             "claude": subprocess.run(["claude", "--version"], capture_output=True, text=True).stdout.strip(),
             "mcp": "edgible find and describe" if args.mcp else "none"}
     results, stopped = [], ""
@@ -282,8 +288,10 @@ def main(argv: list[str]) -> int:
               f"skill {'loaded' if r['loaded'] else 'not loaded'})", flush=True)
     meta["not_run"] = [s["id"] for s in scenarios[len(results):]]
     meta["stopped"] = stopped
-    (args.out / "results.json").write_text(json.dumps({"meta": meta, "results": results}, indent=2) + "\n")
-    (args.out / "report.md").write_text(report(results, meta))
+    # results.json and report.md may be published: no home folder in them.
+    home = lambda text: text.replace(str(Path.home()), "~")
+    (args.out / "results.json").write_text(home(json.dumps({"meta": meta, "results": results}, indent=2)) + "\n")
+    (args.out / "report.md").write_text(home(report(results, meta)))
     print(f"\n{sum(r['pass'] for r in results)}/{len(results)} pass. Report: {args.out / 'report.md'}")
     if stopped:
         print(f"Not run: {', '.join(meta['not_run'])}. Run them again with --only once the cause is gone.")
