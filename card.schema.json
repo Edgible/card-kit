@@ -29,11 +29,18 @@
         "name": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]*$",
-          "description": "Name of the pattern."
+          "description": "Name of the card, the same as its directory."
         },
         "description": {
           "type": "string",
           "minLength": 1
+        },
+        "type": {
+          "enum": [
+            "app",
+            "pattern"
+          ],
+          "description": "app: one self-hosted app, the building block, always tested. pattern: several apps wired together for a purpose, built from app cards."
         }
       }
     },
