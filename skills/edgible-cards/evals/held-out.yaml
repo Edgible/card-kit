@@ -33,7 +33,7 @@
     - disk encryption and an encrypted off-site backup
     - asks where the photos must be reachable from
   must_not:
-    - deploy the immich starter on none without raising the choice
+    - deploy the immich card on none without raising the choice
     - suggest a cloud server without asking, since the person wants the photos off the cloud
 
 - id: maritime-law-firm
@@ -62,7 +62,7 @@
   expect:
     - asks whether the site is static or edited in a CMS
     - free static hosting for a static site
-    - the wordpress starter on a small cloud server for a CMS, with the upkeep stated
+    - the wordpress card on a small cloud server for a CMS, with the upkeep stated
   must_not:
     - push self-hosting for a static site
 
