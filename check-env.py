@@ -174,8 +174,22 @@ class Report:
         return lines
 
 
+# Each Docker or edgible call gets this long. A tool that hangs (a paused Docker, a CLI waiting
+# on something) then stops the check in minutes, naming the command, instead of blocking it.
+TIMEOUT = 120
+
+
+def stuck(cmd: list[str]) -> None:
+    print(f"check-env: `{' '.join(cmd)}` did not answer in {TIMEOUT} seconds; "
+          f"is {cmd[0]} running and working? Try it by hand.", file=sys.stderr)
+    sys.exit(2)
+
+
 def run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT)
+    except subprocess.TimeoutExpired:
+        stuck(cmd)
 
 
 def read_env(path: Path) -> dict[str, str]:
@@ -304,17 +318,18 @@ def compose_config(
 ) -> tuple[dict | None, str]:
     """The file as Compose resolves it. placeholders fill empty values; the shell environment wins over --env-file.
     With a prefix, the project is <prefix><file stem>, as test-card runs it, instead of the file's name:."""
-    proc = subprocess.run(
-        [
-            "docker", "compose",
-            *(["-p", prefix + compose.stem] if prefix else []),
-            "--env-file", str(env_file),
-            "-f", str(compose),
-            "config", "--format", "json",
-        ],
-        capture_output=True, text=True,
-        env={**os.environ, **(placeholders or {})},
-    )
+    cmd = [
+        "docker", "compose",
+        *(["-p", prefix + compose.stem] if prefix else []),
+        "--env-file", str(env_file),
+        "-f", str(compose),
+        "config", "--format", "json",
+    ]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT,
+                              env={**os.environ, **(placeholders or {})})
+    except subprocess.TimeoutExpired:
+        stuck(cmd)
     if proc.returncode != 0:
         return None, proc.stderr.strip()
     return json.loads(proc.stdout), ""

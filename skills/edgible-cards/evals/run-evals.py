@@ -141,7 +141,7 @@ def answer(prompt: str, max_turns: int, timeout: int, mcp: str) -> dict:
     return {"answer": final, "tools": tools, "skill_loaded_at": loaded_at, "events": events}
 
 
-def judge(scenario: dict, reply: str, timeout: int) -> dict:
+def judge(scenario: dict, reply: str, timeout: int, model: str = "") -> dict:
     """A separate session scores the answer. It has no tools: it judges only what it is shown."""
     items = {"expect": scenario["expect"], "must_not": scenario["must_not"], "principles": PRINCIPLES}
     prompt = f"""You are judging an AI assistant's answer to a person, for a test of an agent skill.
@@ -172,7 +172,7 @@ Reply with only this JSON, no other text:
   "principles": [{{"item": "...", "pass": null, "evidence": "..."}}],
   "better": "..."}}"""
     with tempfile.TemporaryDirectory() as empty:
-        out = claude(["--output-format", "json", "--max-turns", "1",
+        out = claude([*(["--model", model] if model else []), "--output-format", "json", "--max-turns", "1",
                       "--disallowedTools", *NO_SHELL, "Read", "Grep", "Glob", "Skill", "Task"],
                      prompt, Path(empty), timeout)
     try:
@@ -249,6 +249,9 @@ def main(argv: list[str]) -> int:
                          "runs on day i mod 7, so each one runs once a week. --rotate today uses today")
     ap.add_argument("--max-turns", type=int, default=20)
     ap.add_argument("--timeout", type=int, default=900)
+    ap.add_argument("--judge-model", default="",
+                    help="model for the judging session, such as sonnet, to spend less of a subscription; "
+                         "default: the CLI's default. Answering sessions always use the default, as people do")
     ap.add_argument("--mcp", default=shutil.which("edgible-mcp") or "",
                     help="command of a stdio Edgible MCP server whose find and describe tools answering "
                          "sessions may use; default: edgible-mcp on PATH, if any. Pass '' for none")
@@ -264,7 +267,8 @@ def main(argv: list[str]) -> int:
     git = lambda *a: subprocess.run(["git", "-C", str(SKILL_DIR), *a], capture_output=True, text=True).stdout.strip()
     meta = {"date": str(date.today()), "rotation_day": args.rotate, "card_kit": git("rev-parse", "--short", "HEAD") or "unknown",
             "claude": subprocess.run(["claude", "--version"], capture_output=True, text=True).stdout.strip(),
-            "mcp": "edgible find and describe" if args.mcp else "none"}
+            "mcp": "edgible find and describe" if args.mcp else "none",
+            "judge_model": args.judge_model or "default"}
     results, stopped = [], ""
     for s in scenarios:
         print(f"{s['id']}: answering", flush=True)
@@ -277,7 +281,7 @@ def main(argv: list[str]) -> int:
             break
         (args.out / f"{s['id']}.answer.md").write_text(run["answer"] + "\n")
         print(f"{s['id']}: judging", flush=True)
-        verdict = judge(s, run["answer"], args.timeout)
+        verdict = judge(s, run["answer"], args.timeout, args.judge_model)
         if "error" in verdict and LIMIT.search(json.loads(verdict["raw"]).get("result", "") if verdict["raw"].strip().startswith("{") else verdict["raw"]):
             stopped = f"{s['id']}: the judge hit the usage limit"
             print(f"stopped, not scored: {stopped}", flush=True)
