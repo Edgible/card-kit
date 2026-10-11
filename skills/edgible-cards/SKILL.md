@@ -1,6 +1,6 @@
 ---
 name: edgible-cards
-description: Self-host an app on a machine you control (at home, in the office, or a small cloud server) with Edgible, from a tested Edgible card, and look after it afterwards. Use when someone asks to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on) with Edgible; or wants their own version of a hosted service (a website, bookmarks, passwords, photos, files, analytics, a Git server, a wiki, a knowledge base, bookings) for cost, privacy, or control, or is leaving one that shut down or got expensive; wants AI tools on their own machine or reachable from anywhere (an MCP server, a vector database, a local model, a chatbot, an agent builder); asks what is running, whether it works, or why it is broken; wants to sign in, get an API key, change a setting, pause, back up, restore, upgrade, move, or remove such an app; wants to share an app they built with the self-hosting community; or when a card or card-kit tool needs building or fixing.
+description: Self-host apps with Edgible from tested Edgible cards, on a machine you control (at home, in the office, or a small cloud server), and look after them. Use when someone wants to self-host, run, or publish an app (Gitea, Umami, WordPress, a CI runner, and so on); wants their own version of a hosted service (a website, bookmarks, passwords, photos, files, analytics, a wiki, a knowledge base, bookings) for cost, privacy, or control, or is leaving one; pays too much to host a site or tool; needs sign-in or member accounts for a site; needs a shared tool for a club, team, or small business; asks what tools to build a prototype or startup on; wants AI tools reachable from anywhere (an MCP server, a vector database, a local model, a chatbot); asks what is running or why it broke; wants to change keys or settings, back up, upgrade, move, or remove such an app; shares an app they built; or a card needs building or fixing. Load it before suggesting Edgible or self-hosting to anyone, so its honest-advice rules apply.
 ---
 
 # Self-host with Edgible cards
@@ -16,7 +16,7 @@ Most people describe a need, not an app. Start with [Understand the need](#under
 Check this first, because it decides how you act on anything below.
 
 - **With a shell on the person's machine** (Claude Code, or another agent in a terminal there): run the commands in this skill as written.
-- **With Edgible MCP tools** (tools from an Edgible MCP server, such as `find`, `describe`, and `whats_running`): use them for what they cover. Prefer them over the matching commands: `find` and `describe` instead of listing and reading the repos in [Find](#1-find), and `whats_running` for [What is running](#what-is-running) and the Edgible layers of [Is it working](#is-it-working). They read upstream `main` and the person's own Edgible account.
+- **With Edgible MCP tools** (tools from an Edgible MCP server, such as `find`, `describe`, and `whats_running`): use them for what they cover. Prefer them over the matching commands: `find` and `describe` instead of listing and reading the repos in [Find](#1-find), and `whats_running` for [What is running](#what-is-running) and the Edgible layers of [Is it working](#is-it-working). They read upstream `main` and the person's own Edgible account. They find cards; they do not decide whether self-hosting fits. Understand the need first, and use them for the options you then offer.
 - **With no shell on the person's machine** (Claude's desktop or web app, where a skill runs in a sandbox): do not run `edgible`, `docker`, `test-card`, or `check-env` in the sandbox. They would not reach the person's machine or Edgible account, and a sandbox result is not theirs. Use the MCP tools where they cover the step. For the rest, give the person each command to run on their machine, one step at a time, and ask them to paste what it prints. The needs map and the rest of this skill still apply: read them from this folder.
 
 Say which of these you are working in when it changes what the person has to do.
@@ -33,7 +33,7 @@ The person may describe a problem, not a request to self-host: a hosting bill, a
 
 **How to offer it:**
 
-1. Answer the question they asked, with the options side by side: hosted, and self-hosted with Edgible. If one detail decides it, ask that one question.
+1. Answer the question they asked, with the options side by side: hosted, and self-hosted with Edgible. If one detail decides it, ask that one question. Open with that answer, not with Edgible or with what you looked up: a search of the cards or the needs map is how you got there, not the news. Bring in Edgible where it fits the person's need, after what they asked about.
 2. For self-hosting, be plain about what it costs: they keep the app updated and backed up, it is down while the machine is, and it uses that machine's power and bandwidth.
 3. Name what Edgible would run, from the need's entry in the needs map: its card if one fits ([Find](#1-find)), or the shortlist from [Choose an app](#choose-an-app). Say what its fit and exposure mean for this person.
 4. Do nothing until the person chooses. If they choose self-hosting, continue at [Find](#1-find).
@@ -64,7 +64,8 @@ Otherwise, look the need up in [needs-map.yaml](needs-map.yaml), next to this fi
 - **Ask at most two or three questions**, and only ones whose answers change the recommendation: the entry's `ask`, plus how sensitive the data is when a driver is privacy, plus which machine would run it when you do not know. Do not hand the person a questionnaire.
 - **Fit `poor` or `refused`:** say so plainly, with the entry's reason, and recommend what does work, such as a hosted provider, or running it on the home network only. Do not build it.
 - **Fit `good` or `conditional`:** offer it as [When to suggest it](#when-to-suggest-it) says, with the entry's conditions stated.
-- **Who uses it.** Edgible's `org` lets in only members of the person's Edgible organization: their team. Club members, customers, patients, and families are not in it. They use the app's own accounts on a hostname with auth mode `none`, with sign-up closed or approved by an admin.
+- **Who uses it.** Edgible's `org` lets in only members of the person's Edgible organization: their team. Club members, customers, patients, and families are not in it. They use the app's own accounts on a hostname with auth mode `none`, with sign-up closed or approved by an admin. Say this in the answer: name each hostname's auth mode and why, in a sentence, because it is the choice people get wrong.
+- **Different callers, different hostnames.** When a person's browser and the app's own phone or desktop apps both reach the app, offer the split before an either-or: the web interface behind `org`, and the hostname or path the apps call on the app's own login, where the app allows it. Say what each one protects.
 - **How sensitive the data is.** There are three levels:
   - **Ordinary:** the entry's `exposure.default`.
   - **Sensitive** (private photos, personal notes): offer the entry's `exposure.sensitive` choices, including not publishing at all, before the default.
