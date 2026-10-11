@@ -2,7 +2,7 @@
 """Check card.yml files against card.schema.json, which sits next to this file.
 
 With no arguments, checks every <name>/card.yml in the current directory, which is
-the root of a cards or starters repo.
+the root of a cards repo.
 With arguments, checks those files.
 metadata.name must match the directory name.
 
@@ -14,6 +14,12 @@ It also checks the naming conventions the tools rely on, so card.yml stays short
   of a card with more.
 - each Compose file sets a top-level name:, the Compose project name.
 - a place in the optional places: section is one the apps use.
+
+A card of metadata.type app is one app that other cards are built from, so it also must:
+- have test.yml;
+- have one Compose file and one place;
+- name every service and volume <card> or <card>-<something>, and set no container_name,
+  so two app cards drop into one Compose file without a clash.
 
 A card may also have test.yml, the latest run of its lifecycle. When it does,
 it must match test.schema.json, give a Verify result for every app in card.yml,
@@ -130,6 +136,32 @@ def convention_errors(card_dir: Path, card: dict) -> list[str]:
         if var not in env:
             errors.append(f"card.env has no {var}, the serving device for place {place}")
     errors += risky_errors(card_dir, composes)
+    if card["metadata"].get("type") == "app":
+        errors += app_errors(card_dir, card, composes)
+    return errors
+
+
+def app_errors(card_dir: Path, card: dict, composes: dict[str, str]) -> list[str]:
+    """What an app card breaks of the rules that let it be combined with others."""
+    name = card["metadata"]["name"]
+    errors = []
+    if not (card_dir / "test.yml").is_file():
+        errors.append("an app card must have test.yml: run test-card")
+    if len(composes) != 1:
+        errors.append(f"an app card has one Compose file, not {len(composes)}")
+    places = {app["place"] for app in card["applications"]} | set(card.get("places") or {})
+    if len(places) != 1:
+        errors.append(f"an app card has one place, not {len(places)}: {', '.join(sorted(places))}")
+    ours = re.compile(rf"^{re.escape(name)}(-[a-z0-9-]+)?$")
+    for file, text in composes.items():
+        compose = yaml.safe_load(text) or {}
+        for kind in ("services", "volumes"):
+            for item in (compose.get(kind) or {}):
+                if not ours.match(item):
+                    errors.append(f"{file}: {kind[:-1]} {item} must be named {name} or {name}-<something>")
+        for service, spec in (compose.get("services") or {}).items():
+            if isinstance(spec, dict) and "container_name" in spec:
+                errors.append(f"{file}: service {service} sets container_name; an app card must not")
     return errors
 
 

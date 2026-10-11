@@ -1,6 +1,6 @@
 # card-kit
 
-The format of an Edgible card, and the tools that check and build one. [Edgible/cards](https://github.com/Edgible/cards) holds the cards people share. [Edgible/starters](https://github.com/Edgible/starters) holds single-app starters to build cards from. Both follow what is written here, and both run these tools.
+The format of an Edgible card, and the tools that check and build one. [Edgible/cards](https://github.com/Edgible/cards) holds the cards people share, and runs these tools.
 
 ## What a card is
 
@@ -8,7 +8,12 @@ A card records a deployment pattern so someone else can reproduce it: the progra
 
 Most apps are web apps published over `https`. An app that is not web, such as a game server or SSH, is published over `tcp` or `udp`. Such an app has no auth mode, so its `authModes` is `[none]`, and its port must be from `20000` to `29999`, the range the managed gateway opens. Treat it as reachable by anyone.
 
-A card is a directory whose name is the card's name. In a cards or starters repo, every top-level directory that holds a `card.yml` is one card.
+A card is a directory whose name is the card's name. In a cards repo, every top-level directory that holds a `card.yml` is one card.
+
+A card is one of two types, set as `metadata.type` in `card.yml`:
+
+- **`app`**: one self-hosted app, such as Gitea or Umami, ready to run on its own or to build other cards from. The app may sit on more than one hostname and bring its own database, but not a second app. An app card always has `test.yml`, one Compose file, and one place, and names every service and volume after itself (`umami`, `umami-db`, `umami-db-data`) with no `container_name`, so two app cards drop into one Compose file without a clash. `check-cards` checks these rules.
+- **`pattern`**: several apps wired together for a purpose, possibly across several machines, such as a Git server with a CI runner. A pattern is built from app cards. Its README says which.
 
 | File | What it is |
 | --- | --- |
@@ -20,7 +25,7 @@ A card is a directory whose name is the card's name. In a cards or starters repo
 | `images/` | Optional pictures drawn from `card.yml` by `card-image`. |
 | `etc/` | Optional sample files the card hands you, such as a PDF or a page. |
 | `test/` | Optional inputs for `test-card`: values only a person may fill, and the card's own checks. See [Test inputs](#test-inputs). |
-| `test.yml` | Optional: the latest run of the card's lifecycle. Every starter has one. See [Test results](#test-results). |
+| `test.yml` | The latest run of the card's lifecycle. Every app card has one; for a pattern it is optional. See [Test results](#test-results). |
 
 ## The README
 
@@ -44,7 +49,7 @@ It starts the same way in every card, so it runs from anywhere and in a test:
 
 ```sh
 #!/bin/sh
-# Prepare for the gitea starter: make the admin.
+# Prepare for the gitea card: make the admin.
 # Run it after Start and before Publish, from the directory that holds gitea/:
 #   sh gitea/prepare.sh
 set -eu
@@ -72,7 +77,7 @@ places:
 
 Sizes are a number, a space, and `MB`, `GB`, or `TB`. Each field is optional, and a card without `places:` is still valid. `check-cards` checks that each place named there is one the apps use. `check-env` compares the places being started with the machine, adding them up when two places share it, and reports a shortfall as a warning, not a conflict.
 
-The README's What section says the same numbers in words, so a reader who never opens `card.yml` sees them. A starter always has `places:`, from the sizes its test measured (see `measured:` under [Test results](#test-results)) plus a margin.
+The README's What section says the same numbers in words, so a reader who never opens `card.yml` sees them. An app card always has `places:`, from the sizes its test measured (see `measured:` under [Test results](#test-results)) plus a margin.
 
 ## Places with no app
 
@@ -108,13 +113,13 @@ A service that mounts the Docker socket, runs privileged, or uses the host's net
 | A secret | Empty in git, with a `# Generate with: <command>` comment above it. `check-env` fills it with that command. |
 | A value the card cannot run without | `${VAR:?set VAR in card.env}` in the Compose file. |
 
-A card that may be combined with others reads better with names that say which app they belong to: `UMAMI_DB_PASSWORD` rather than `POSTGRES_PASSWORD`, a service called `umami-db` rather than `db`, and no `container_name`. Starters follow this so they combine cleanly. For a card it is advice, not a check.
+A card that may be combined with others reads better with names that say which app they belong to: `UMAMI_DB_PASSWORD` rather than `POSTGRES_PASSWORD`, a service called `umami-db` rather than `db`, and no `container_name`. App cards must follow this, so they combine cleanly, and `check-cards` checks it. For a pattern it is advice.
 
 ## Test results
 
 A card can carry `test.yml`, the latest result of its whole lifecycle: Check, Start, Publish, Verify, and Tear down. Git history holds the earlier ones.
 
-Commit `test.yml` only when something material changes: the result, a step's outcome, the images, or the files. A rerun with the same outcome and the same images leaves the file alone, so `tested` is the day of the run that produced this result, not the most recent run. [test.schema.json](test.schema.json) is its source of truth, and `check-cards` checks it when it is there. Starters always have one; for a card it is optional.
+Commit `test.yml` only when something material changes: the result, a step's outcome, the images, or the files. A rerun with the same outcome and the same images leaves the file alone, so `tested` is the day of the run that produced this result, not the most recent run. [test.schema.json](test.schema.json) is its source of truth, and `check-cards` checks it when it is there. Every app card has one; for a pattern it is optional.
 
 ```yaml
 tested: 2026-10-10
@@ -158,7 +163,7 @@ steps:
     workflow-runs: pass      # a workflow ran on it to the end
 ```
 
-`files` is a fingerprint of every file in the card but `README.md`, `images/`, `test.yml`, and hidden files. When it no longer matches, the card changed since its test: `check-cards` says so in a note, and `check-cards --fresh` fails it, for a repo such as starters where every card must carry a current test.
+`files` is a fingerprint of every file in the card but `README.md`, `images/`, `test.yml`, and hidden files. When it no longer matches, the card changed since its test: `check-cards` says so in a note, and `check-cards --fresh` fails it, as the cards repo does on every pull request, so a card's test always describes its files.
 
 ### Test inputs
 
@@ -211,11 +216,11 @@ docs: [Gitea, https://docs.gitea.com]
 ../card-kit/run card-readme gitea gitea-readme.yml
 ```
 
-The YAML file must be inside the repo, because `run` mounts only the repo and the kit. Keep it out of the commit unless you want it there. Fetch reads from `Edgible/starters` when you run it in a starters repo, and from `Edgible/cards` otherwise.
+The YAML file must be inside the repo, because `run` mounts only the repo and the kit. Keep it out of the commit unless you want it there. Fetch reads from `Edgible/cards`.
 
 ### check-cards
 
-Checks each `card.yml` against [card.schema.json](card.schema.json), checks that `metadata.name` matches the directory name, and checks the first four conventions above. When a card has `test.yml`, it checks that too. With no arguments it checks every top-level `*/card.yml` in the current directory. Each failure says what to change. The cards and starters repos run this on every pull request.
+Checks each `card.yml` against [card.schema.json](card.schema.json), checks that `metadata.name` matches the directory name, and checks the first four conventions above. When a card has `test.yml`, it checks that too. With no arguments it checks every top-level `*/card.yml` in the current directory. Each failure says what to change. An app card must also follow the app rules in [What a card is](#what-a-card-is). The cards repo runs this on every pull request.
 
 ```bash
 ../card-kit/run check-cards
@@ -279,7 +284,7 @@ While it runs, it measures each place: the peak memory of its containers togethe
 
 ### test-cards
 
-Tests every card in a repo that needs it, one at a time, and keeps a status for each: the command a CI job runs. Like `test-card`, it runs with `python3` on a serving device, from the repo's root.
+Tests every card in a repo that carries `test.yml` and needs a test, one at a time, and keeps a status for each: the command a CI job runs. That is every app card, and each pattern that has a test. Like `test-card`, it runs with `python3` on a serving device, from the repo's root.
 
 ```bash
 python3 ../card-kit/test-cards.py --device macbookair --status ../status

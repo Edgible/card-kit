@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Test every card in a repo that needs it, and keep a status for each one.
 
-Run it on a serving device, from the root of a cards or starters repo:
+Run it on a serving device, from the root of a cards repo:
 
     python3 ../card-kit/test-cards.py --device macbookair --status ../status
     python3 ../card-kit/test-cards.py --device macbookair --status ../status --only gitea
 
+It tests the cards that carry test.yml: every app card, and each pattern card that has one.
 A card needs a test when its status says it has not been tested, when its files changed
 since (the files: fingerprint test-card records), or when `edgible --version` is not the
 version it last passed or failed on. A new Edgible version therefore retests every card.
@@ -56,11 +57,13 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--by", choices=["agent", "person", "ci"], default="ci")
     args = ap.parse_args(argv)
 
-    cards = sorted(p.parent.name for p in Path.cwd().glob("*/card.yml"))
-    unknown = set(args.only) - set(cards)
+    every = sorted(p.parent.name for p in Path.cwd().glob("*/card.yml"))
+    unknown = set(args.only) - set(every)
     if unknown:
         print(f"no card named {', '.join(sorted(unknown))}", file=sys.stderr)
         return 2
+    # A card is tested when it carries test.yml, or when --only names it.
+    cards = [c for c in every if (Path.cwd() / c / "test.yml").is_file() or c in args.only]
     cli = subprocess.run(["edgible", "--version"], capture_output=True, text=True).stdout.strip()
     if not cli:
         print("edgible --version printed nothing; is the edgible CLI installed?", file=sys.stderr)

@@ -18,8 +18,8 @@ The YAML file holds what only a person knows:
 When the card has prepare.sh, Start runs it and shows it. Everything else comes from
 card.yml and the Compose files, the same way on every card:
 How (Fetch, Edit card.env, Check, Start, Publish), each app's Verify check by its auth
-mode, Tear down, and the sizing sentence in What, from places:. Fetch reads from the
-repo named by --repo (cards or starters).
+mode, Tear down, and the sizing sentence in What, from places:. Fetch reads from
+Edgible/cards.
 """
 from __future__ import annotations
 
@@ -54,7 +54,6 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("card", type=Path)
     ap.add_argument("spec", type=Path, help="the YAML file with why, what, data, edit, start, verify, docs")
-    ap.add_argument("--repo", default="", help="cards or starters; default: the name of the repo you run it in")
     args = ap.parse_args(argv)
 
     d = args.card
@@ -71,11 +70,7 @@ def main(argv: list[str]) -> int:
                          f"[prepare.sh](prepare.sh) is:\n\n{FENCE}sh\n{script}\n{FENCE}")
         if spec.get("after-prepare"):
             prepare_block += "\n\n" + spec["after-prepare"].strip()
-    try:
-        detected = "starters" if "starters" in Path("/repo/.git/config").read_text() else "cards"
-    except OSError:
-        detected = "cards"
-    repo = args.repo or detected
+    repo = "cards"
     apps = card["applications"]
     composes = sorted(p.name for p in d.glob("*compose*.yml"))
     env = f"--env-file {name}/card.env"
@@ -251,7 +246,7 @@ Four steps, in this order. Step 1 runs wherever `edgible` is logged in. Steps 2 
 Skip this step to keep the data. The loop copies each volume to a `.tgz` file in this directory first.
 
 {chr(10).join(f"{on(pl)}{FENCE}bash{chr(10)}{backup_of(files_of[pl])}{chr(10)}{run_files(files_of[pl], 'down --volumes')}{chr(10)}{FENCE}{chr(10)}" for pl in stop_order if files_of[pl]) if multi else FENCE + 'bash' + chr(10) + backup_of(composes) + chr(10) + run('down --volumes') + chr(10) + FENCE + chr(10)}
-### 4. Remove the {'starter' if repo == 'starters' else 'card'}
+### 4. Remove the card
 
 {FENCE}bash
 rm -rf {name}
