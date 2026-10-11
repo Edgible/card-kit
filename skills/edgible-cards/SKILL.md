@@ -11,6 +11,16 @@ Work from a starter or card whenever one fits. Its README is a tested path, and 
 
 Most people describe a need, not an app. Start with [Understand the need](#understand-the-need), which reads [needs-map.yaml](needs-map.yaml) next to this file, and, when they have not asked to self-host, [When to suggest it](#when-to-suggest-it). A person who names an app goes straight to [Find](#1-find). Steps 1 to 5 set an app up. [After it is running](#after-it-is-running) covers everything after that: what is running, whether it works, fixing it, signing in, changing it, pausing, backing up, upgrading, moving, and removing it.
 
+## Where you are running
+
+Check this first, because it decides how you act on anything below.
+
+- **With a shell on the person's machine** (Claude Code, or another agent in a terminal there): run the commands in this skill as written.
+- **With Edgible MCP tools** (tools from an Edgible MCP server, such as `find`, `describe`, and `whats_running`): use them for what they cover. Prefer them over the matching commands: `find` and `describe` instead of listing and reading the repos in [Find](#1-find), and `whats_running` for [What is running](#what-is-running) and the Edgible layers of [Is it working](#is-it-working). They read upstream `main` and the person's own Edgible account.
+- **With no shell on the person's machine** (Claude's desktop or web app, where a skill runs in a sandbox): do not run `edgible`, `docker`, `test-card`, or `check-env` in the sandbox. They would not reach the person's machine or Edgible account, and a sandbox result is not theirs. Use the MCP tools where they cover the step. For the rest, give the person each command to run on their machine, one step at a time, and ask them to paste what it prints. The needs map and the rest of this skill still apply: read them from this folder.
+
+Say which of these you are working in when it changes what the person has to do.
+
 ## When to suggest it
 
 The person may describe a problem, not a request to self-host: a hosting bill, a service that shut down, data they would rather keep, a team that needs a shared tool. Self-hosting is sometimes the best answer, and often it is not. Offer it as one option among others, never as the only answer.

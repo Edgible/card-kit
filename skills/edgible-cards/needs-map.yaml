@@ -328,7 +328,7 @@
   permissions: "every tool the server offers is something the assistant can do with the person's data; offer read-only tools first, and ask before tools that change or delete things"
   builders: "the quickest way to let early users try an MCP server: publish it from the developer's machine or a small cloud server, without building hosting"
   machine: "next to the data or tools it reaches; always on if others use it. Most packaged servers speak stdio, so publishing one needs a bridge container that serves it over Streamable HTTP; a server that already speaks HTTP needs none"
-  starters: []
+  starters: [mcp-bridge]
   cards: []
   find: "the official MCP Registry (https://registry.modelcontextprotocol.io/v0/servers?search=<word>): servers listed with packages run on your own machine and are the ones to publish, servers with only remotes are already hosted; also GitHub repositories tagged mcp-server"
   ask: ["which assistant will connect to it: Claude Code, Claude's apps, or something else?", "should it only read, or also change things?"]
