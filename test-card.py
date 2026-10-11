@@ -418,6 +418,19 @@ def main(argv: list[str]) -> int:
         steps["check-env"] = "pass"
         print("check-env: pass")
 
+        # A name already taken in the org is published as test-<name>. A card builds the URL it
+        # gives out from the app's name (<APP>_URL, by the conventions), so point that at the
+        # test's own hostname before anything starts, or the card would reach the org's real app.
+        existing = {a["name"] for a in json.loads(sh("edgible app list --json").stdout)}
+        names = {app["name"]: app["name"] if app["name"] not in existing else f"test-{app['name']}" for app in apps}
+        for app_name, name in names.items():
+            if name == app_name:
+                continue
+            notes.append(f"{app_name} is taken in the test org, so it was published as {name}.")
+            url_key = app_name.upper().replace("-", "_") + "_URL"
+            if url_key in env_values(env_file) and not env_values(env_file)[url_key]:
+                set_env(env_file, url_key, f"https://{name}.{label}.edgible.com")
+
         sampler.thread.start()
         t = time.time()
         steps["start"], started_compose = "fail", True
@@ -436,18 +449,24 @@ def main(argv: list[str]) -> int:
             if prepare.returncode != 0:
                 raise RuntimeError("prepare failed")
 
-        existing = {a["name"] for a in json.loads(sh("edgible app list --json").stdout)}
         devices = [d for d in json.loads(sh("edgible device list --json").stdout) if d["name"] == args.device]
         if len(devices) != 1:
             raise RuntimeError(f"need exactly one device named {args.device}")
         for app in apps:
-            name = app["name"] if app["name"] not in existing else f"test-{app['name']}"
-            if name != app["name"]:
-                notes.append(f"{app['name']} is taken in the test org, so it was published as {name}.")
+            name = names[app["name"]]
             steps["publish"] = "fail"
-            sh(f"edgible app create existing --non-interactive --name {name} --port {app['port']} "
-               f"--protocol {app['protocol']} --auth-modes {','.join(app['auth'])} "
-               f"--device-id {devices[0]['id']}", timeout=900)
+            try:
+                sh(f"edgible app create existing --non-interactive --name {name} --port {app['port']} "
+                   f"--protocol {app['protocol']} --auth-modes {','.join(app['auth'])} "
+                   f"--device-id {devices[0]['id']}", timeout=900)
+            except Exception:
+                # The create can fail after the app was made, such as a retry that finds the name
+                # in use. An app with this name on this port, which was not there before, is this
+                # test's, so Tear down deletes it.
+                now = {a["name"]: a for a in json.loads(sh("edgible app list --json").stdout)}
+                if name in now and name not in existing and now[name].get("port") == app["port"]:
+                    published.append((app, name))
+                raise
             published.append((app, name))
         steps["publish"] = "pass"
         print("publish: pass", [n for _, n in published])
