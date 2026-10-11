@@ -7,7 +7,9 @@
 Each entry in skills/edgible-cards/needs-map.yaml must have every required field, no field
 the map does not define, a fit rating the skill knows, and the default and sensitive
 exposure choices (regulated is optional). Its category must be a category name in
-awesome-selfhosted's data, which renames one now and then. Its starters and cards must
+awesome-selfhosted's data, which renames one now and then, unless the entry has source
+edgible: a category Edgible added, which must say in find where its apps come from, and
+must not reuse an awesome-selfhosted name. Its starters and cards must
 exist in Edgible/starters and Edgible/cards. It also lists the starters and cards that no
 entry names, so a new one gets a place in the map.
 
@@ -28,7 +30,8 @@ import yaml
 MAP = Path(__file__).resolve().parent / "skills" / "edgible-cards" / "needs-map.yaml"
 TAGS = "https://github.com/awesome-selfhosted/awesome-selfhosted-data/archive/refs/heads/master.tar.gz"
 FIELDS = {"category", "jobs", "replaces", "drivers", "fit", "exposure", "machine", "starters", "cards", "ask"}
-OPTIONAL = {"permissions", "builders"}
+OPTIONAL = {"permissions", "builders", "source", "find"}
+SOURCES = {"edgible"}
 EXPOSURE = {"default", "sensitive", "regulated"}
 FITS = {"good", "conditional", "poor", "refused"}
 
@@ -62,8 +65,15 @@ def main() -> int:
         c = e.get("category", "?")
         problems += [f"{c}: no {k}" for k in sorted(FIELDS - set(e))]
         problems += [f"{c}: unknown field {k}" for k in sorted(set(e) - FIELDS - OPTIONAL)]
-        if c not in known:
-            problems.append(f"{c}: not a category in awesome-selfhosted")
+        source = e.get("source")
+        if source is None and c not in known:
+            problems.append(f"{c}: not a category in awesome-selfhosted (or add source: edgible)")
+        if source is not None and source not in SOURCES:
+            problems.append(f"{c}: source must be one of {', '.join(sorted(SOURCES))}")
+        if source == "edgible" and c in known:
+            problems.append(f"{c}: is an awesome-selfhosted category, so drop source: edgible")
+        if source == "edgible" and not e.get("find"):
+            problems.append(f"{c}: source edgible needs find")
         if e.get("fit", {}).get("rating") not in FITS:
             problems.append(f"{c}: fit rating must be one of {', '.join(sorted(FITS))}")
         if not {"default", "sensitive"} <= set(e.get("exposure", {})):

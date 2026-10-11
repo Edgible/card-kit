@@ -90,5 +90,21 @@
   {
     "query": "I've written a Python library for parsing GPX files. How do I publish it on PyPI?",
     "should_trigger": false
+  },
+  {
+    "query": "I've built an MCP server that lets Claude query our company's inventory database. It runs on my laptop. How can the rest of the team use it from Claude when they're not in the office?",
+    "should_trigger": true
+  },
+  {
+    "query": "We're prototyping a RAG chatbot for our product docs. Is it worth running our own vector database instead of paying for Pinecone?",
+    "should_trigger": true
+  },
+  {
+    "query": "Write a Python MCP server that exposes read-only queries on my SQLite database, using the official SDK.",
+    "should_trigger": false
+  },
+  {
+    "query": "What's the difference between cosine similarity and dot product for comparing embeddings?",
+    "should_trigger": false
   }
 ]

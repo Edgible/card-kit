@@ -52,6 +52,16 @@ A good answer answers the founder's question first: prototyping tools, talking t
 
 A good answer leads with practice-management systems built for clinics, because patient records are health data. It offers self-hosting at most for the booking page, and it asks which country you are in, because that decides the privacy rules.
 
+## AI tools
+
+> I've built an MCP server that lets Claude query our company's inventory database. It runs on my laptop. How can the rest of the team use it from Claude when they're not in the office?
+
+A good answer moves it to a machine that stays on, next to the database, and publishes it with an API key per person, so one can be revoked. It asks which Claude the team uses, because Claude Code can send a key and Claude's apps expect the server's own sign-in. It suggests read-only tools first. If the server only speaks stdio, it adds a small bridge that serves it over HTTP.
+
+> We're prototyping a RAG chatbot for our product docs. Is it worth running our own vector database instead of paying for Pinecone?
+
+A good answer asks how many documents there are, and says plainly when a hosted free tier is enough. Otherwise it offers a self-hosted vector database (Qdrant, Weaviate, or pgvector if the app already uses Postgres) next to the app, not published at all when only that app uses it. It treats the embeddings as being as private as the documents.
+
 ## Share an app you built
 
 > I've built a new open-source app that helps small teams keep track of equipment they lend out. How can I share it with the self-hosting community so people can run it easily?
@@ -92,5 +102,7 @@ These touch the same topics, and the skill should stay out of them:
 - "Configure nginx as a reverse proxy with Let's Encrypt on my Ubuntu 24.04 VPS for two domains."
 - "We're 15 people choosing between Notion and Confluence. Can you compare their pricing and permissions features for us?"
 - "I've written a Python library for parsing GPX files. How do I publish it on PyPI?"
+- "Write a Python MCP server that exposes read-only queries on my SQLite database, using the official SDK."
+- "What's the difference between cosine similarity and dot product for comparing embeddings?"
 
 [evals/](evals/) holds these prompts in a form the skill's tests read.

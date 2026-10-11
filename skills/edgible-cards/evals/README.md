@@ -4,7 +4,7 @@ The prompts the skill is measured against, and how to measure it. [EXAMPLES.md](
 
 | File | What it is |
 |---|---|
-| [trigger-set.json](trigger-set.json) | 23 prompts, each marked `should_trigger`: 13 that should load the skill (needs described in people's words, a named app, a day-two problem, sharing an app you built) and 10 near-misses on the same topics that should not. Reviewed by a person. |
+| [trigger-set.json](trigger-set.json) | 27 prompts, each marked `should_trigger`: 15 that should load the skill (needs described in people's words, a named app, a day-two problem, sharing an app you built, AI tools) and 12 near-misses on the same topics that should not. Reviewed by a person. |
 | [held-out.yaml](held-out.yaml) | 10 prompts, mostly real, with what a good answer does (`expect`) and what fails it (`must_not`). Answers are scored against them, and the skill is never tuned to them. |
 | [trigger-probe.py](trigger-probe.py) | Runs each trigger prompt in fresh, read-only `claude -p` sessions with the skill installed, and reports whether and at which step it loaded. |
 
