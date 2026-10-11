@@ -17,6 +17,10 @@ per card in the shape of a shields.io endpoint badge, labelled with the Edgible 
 
     https://img.shields.io/endpoint?url=<raw URL of the status directory>/gitea.json
 
+--spread DAYS spreads that work over the days: a new card, or one whose files changed, is tested at once,
+and every other test waits for the card's turn (card i on day i mod DAYS), which also retests
+each card once in every DAYS days, to catch an image that changed under the same tag.
+
 It runs test-card for each card, one at a time, and never changes the repo: test.yml is
 the author's record of a version, and the status is CI's record of what still passes.
 It exits 1 when a card it tested failed.
@@ -55,6 +59,10 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--all", action="store_true", help="test every card, whether it needs it or not")
     ap.add_argument("--only", nargs="+", default=[], metavar="CARD", help="test only these cards")
     ap.add_argument("--by", choices=["agent", "person", "ci"], default="ci")
+    ap.add_argument("--spread", type=int, default=0, metavar="DAYS",
+                    help="spread the work over this many days: a card whose files changed is tested at "
+                         "once, as is a new card; any other test (a new Edgible version, or none for DAYS days) "
+                         "waits for the card's turn, card i on day i mod DAYS")
     args = ap.parse_args(argv)
 
     every = sorted(p.parent.name for p in Path.cwd().glob("*/card.yml"))
@@ -73,9 +81,11 @@ def main(argv: list[str]) -> int:
     status = json.loads(status_file.read_text()) if status_file.is_file() else {}
 
     failed = []
-    for name in cards:
+    today = date.today()
+    for index, name in enumerate(cards):
         files = files_hash(Path(name))
         entry = status.get(name)
+        turn = not args.spread or index % args.spread == today.toordinal() % args.spread
         if args.only:
             reason = "asked for" if name in args.only else ""
         elif args.all:
@@ -84,13 +94,22 @@ def main(argv: list[str]) -> int:
             reason = "no status yet"
         elif entry.get("files") != files:
             reason = "its files changed"
+        elif not turn:
+            reason = ""
         elif entry.get("edgible-cli") != cli:
             reason = f"Edgible {entry.get('edgible-cli')} -> {cli}"
+        elif args.spread and (today - date.fromisoformat(entry["tested"])).days >= args.spread:
+            reason = f"last tested {entry['tested']}"
         else:
             reason = ""
         if not reason:
             # With --only, a card not named may have no status yet.
-            why = "not asked for" if args.only else f"still {entry['result']} on Edgible {cli} with these files"
+            if args.only:
+                why = "not asked for"
+            elif not turn:
+                why = "not its turn tonight"
+            else:
+                why = f"still {entry['result']} on Edgible {cli} with these files"
             print(f"== {name}: skip, {why}", flush=True)
             continue
 
