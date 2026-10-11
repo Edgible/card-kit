@@ -383,6 +383,7 @@ def main(argv: list[str]) -> int:
     def hide(s: str) -> str:
         """What a test prints may be public, such as a CI log: no org label, access id, or secret."""
         s = re.sub(r"(application-access/)[\w-]+", r"\1<id>", s.replace(label, "<org>"))
+        s = re.sub(r"device_\d+_\w+", "<device>", s)
         for secret in secrets(env_file):
             s = s.replace(secret, "<secret>")
         return s
