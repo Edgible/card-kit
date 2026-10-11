@@ -184,6 +184,36 @@ def risky_errors(card_dir: Path, composes: dict[str, str]) -> list[str]:
     return errors
 
 
+def untrusted_errors(card_dir: Path, composes: dict[str, str]) -> list[str]:
+    """For a card nobody has reviewed yet, such as one an agent just wrote, before it runs on a
+    machine: nothing in it may reach outside the card. Only named volumes and paths inside the
+    card's own directory may be mounted, and no service may get the host's network, processes,
+    devices, extra capabilities, or the Docker socket."""
+    errors = []
+    for file, text in composes.items():
+        compose = yaml.safe_load(text) or {}
+        for name, spec in (compose.get("services") or {}).items():
+            if not isinstance(spec, dict):
+                continue
+            where = f"{file}: service {name}"
+            for key in ("privileged", "cap_add", "devices", "security_opt", "userns_mode", "cgroup_parent"):
+                if spec.get(key):
+                    errors.append(f"{where} sets {key}")
+            for key in ("network_mode", "pid", "ipc"):
+                if str(spec.get(key, "")).startswith(("host", "container:", "service:")):
+                    errors.append(f"{where} uses the host's or another container's {key}")
+            for volume in spec.get("volumes") or []:
+                source = volume.get("source", "") if isinstance(volume, dict) else str(volume).split(":")[0]
+                kind = volume.get("type", "") if isinstance(volume, dict) else ""
+                named = re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", source or "") and kind != "bind"
+                inside = (source.startswith("./") and ".." not in source.split("/")) or source == "."
+                if source and not named and not inside:
+                    errors.append(f"{where} mounts {source}, outside the card; use a named volume or a path under ./")
+                if "docker.sock" in str(volume):
+                    errors.append(f"{where} mounts the Docker socket")
+    return errors
+
+
 def test_errors(card_dir: Path, card: dict, validator: Draft202012Validator) -> list[str]:
     """What is wrong with test.yml, if the card has one."""
     path = card_dir / "test.yml"
@@ -234,7 +264,10 @@ def main(argv: list[str]) -> int:
     )
     # --fresh: a card whose files changed since its test.yml fails. Without it, that is a note.
     fresh = "--fresh" in argv
-    argv = [a for a in argv if a != "--fresh"]
+    # --untrusted: the card has not been reviewed (an agent wrote it), so nothing in it may
+    # reach outside the card before it runs anywhere.
+    untrusted = "--untrusted" in argv
+    argv = [a for a in argv if a not in ("--fresh", "--untrusted")]
     failed = False
     for path in card_paths(argv):
         try:
@@ -246,6 +279,9 @@ def main(argv: list[str]) -> int:
                 )
             validator.validate(card)
             errors = convention_errors(path.parent, card) + test_errors(path.parent, card, test_validator)
+            if untrusted:
+                composes = {f.name: f.read_text() for f in sorted(path.parent.glob("*compose*.yml"))}
+                errors += untrusted_errors(path.parent, composes)
             stale = freshness(path.parent)
             if stale and fresh:
                 errors.append(stale)

@@ -220,11 +220,19 @@ The YAML file must be inside the repo, because `run` mounts only the repo and th
 
 ### check-cards
 
-Checks each `card.yml` against [card.schema.json](card.schema.json), checks that `metadata.name` matches the directory name, and checks the first four conventions above. When a card has `test.yml`, it checks that too. With no arguments it checks every top-level `*/card.yml` in the current directory. Each failure says what to change. An app card must also follow the app rules in [What a card is](#what-a-card-is). The cards repo runs this on every pull request.
+Checks each `card.yml` against [card.schema.json](card.schema.json), checks that `metadata.name` matches the directory name, and checks the first four conventions above. When a card has `test.yml`, it checks that too. With no arguments it checks every top-level `*/card.yml` in the current directory. Each failure says what to change. An app card must also follow the app rules in [What a card is](#what-a-card-is). The cards repo runs this on every pull request. `--untrusted` is for a card nobody has reviewed yet, such as one an agent just wrote, before it runs anywhere: it refuses anything that reaches outside the card (a host path, the Docker socket, privileged mode, the host's network or processes, devices, or extra capabilities).
 
 ```bash
 ../card-kit/run check-cards
 ../card-kit/run check-cards website/card.yml
+```
+
+### pick-app
+
+Picks the next app to make an app card for, from the first gap in the skill's [needs map](skills/edgible-cards/needs-map.yaml): a category people ask about that no card covers yet. It lists that category's apps on awesome-selfhosted that a card can be made from (a Docker image, not archived, updated in the last six months, no third-party service, not already a card or excluded), most starred first, as JSON. Categories Edgible adds, mostly AI tools, have no awesome-selfhosted data and are listed separately. Edgible/cards' nightly grow job uses it.
+
+```bash
+../card-kit/run pick-app --exclude wallabag
 ```
 
 ### card-image
@@ -290,7 +298,7 @@ Tests every card in a repo that carries `test.yml` and needs a test, one at a ti
 python3 ../card-kit/test-cards.py --device macbookair --status ../status
 ```
 
-A card needs a test when it has no status yet, when its files changed since its last status, or when `edgible --version` differs from the version of its last status, so a new Edgible version retests every card. `--all` tests every card, and `--only gitea immich` tests those.
+A card needs a test when it has no status yet, when its files changed since its last status, or when `edgible --version` differs from the version of its last status, so a new Edgible version retests every card. `--all` tests every card, and `--only gitea immich` tests those. `--spread 7` spreads the work over a week: a new or changed card is tested at once, and any other test (a new Edgible version, or a week without one) waits for the card's turn, card *i* on day *i* mod 7, so each card is also retested weekly and a night tests about a seventh of the cards.
 
 The status directory holds `status.json`, every card's latest result, Edgible version, date and fingerprint, and one `<card>.json` per card in the shape of a [shields.io endpoint badge](https://shields.io/badges/endpoint-badge), labelled with the Edgible version it ran on: `Edgible 1.4.6 | passing`. Keep the directory on a branch of its own, such as `status`, and a README can show each card's badge from it without a commit to `main`.
 
