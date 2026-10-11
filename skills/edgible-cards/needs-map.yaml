@@ -20,13 +20,18 @@
 #   ask        the one or two questions whose answers change the recommendation
 #
 # Optional:
+#   source     edgible for a category Edgible added because awesome-selfhosted has none for
+#              it yet, mostly AI tools, which move faster than a curated list. category is
+#              then Edgible's own name. Leave it out for an awesome-selfhosted category.
+#   find       where to shortlist apps when awesome-selfhosted has few or none: required with
+#              source edgible
 #   exposure.regulated  for regulated or confidential data: health records, legal privilege,
 #                       client files, financial records, children's data
 #   permissions         who sees what inside the app, beyond who reaches it
 #   builders            how a founder or developer uses it as a building block for a product
 #
 # Apps are not listed: the skill's Choose an app step ranks them from awesome-selfhosted's data,
-# so they stay current. Starters and cards are hints. Find lists the current ones.
+# or from the entry's find sources, so they stay current. Starters and cards are hints. Find lists the current ones.
 #
 # Where Edgible ends TLS, and what its gateway can see, is in Edgible's docs. Link to them
 # when someone asks. Do not state it from memory.
@@ -295,7 +300,7 @@
   ask: ["do other services need to call it with webhooks?"]
 
 - category: Generative Artificial Intelligence (GenAI)
-  jobs: [chat with AI privately, ask questions about my own documents, run AI models without sending data away, one API for several models]
+  jobs: [chat with AI privately, ask questions about my own documents, run AI models without sending data away, one API for several models, run open models on my own GPU and use them from anywhere, an OpenAI-compatible API for my own apps]
   replaces: [ChatGPT, Claude.ai for private documents, hosted LLM APIs]
   drivers: [privacy, cost, control]
   fit: {rating: conditional, why: "local models need a strong machine and answer slower than hosted ones; small models run on CPU"}
@@ -308,7 +313,106 @@
   machine: much memory; a GPU or Apple Silicon for anything but small models
   starters: []
   cards: [assistant, litellm]
+  find: "awesome-selfhosted lists only a few; also GitHub repositories tagged local-llm or llm-inference, most starred and recently updated"
   ask: ["what hardware do you have?", "chat, documents, or an API for your own apps?"]
+
+- category: AI tools for assistants (MCP servers)
+  source: edgible
+  jobs: [let Claude or ChatGPT use my files or database, use my MCP server when I'm away from my desk, share an MCP server with my team, give my AI assistant access to our internal tools, host the MCP server I built]
+  replaces: [hosted MCP platforms, Zapier MCP, keeping the server on one laptop]
+  drivers: [privacy, control, local]
+  fit: {rating: good, why: "an MCP server is a small web service next to the data it reaches, which is what Edgible publishes; what decides it is how the person's assistant signs in"}
+  exposure:
+    default: "api-key, which clients that can send a header use (Claude Code and most developer tools: Authorization: Bearer); Claude's desktop and web connectors expect the server's own OAuth instead, so check the client's current docs before choosing"
+    sensitive: api-key, with read-only tools unless writes are needed, and one key per person so a key can be revoked; never none without the server's own sign-in
+  permissions: "every tool the server offers is something the assistant can do with the person's data; offer read-only tools first, and ask before tools that change or delete things"
+  builders: "the quickest way to let early users try an MCP server: publish it from the developer's machine or a small cloud server, without building hosting"
+  machine: "next to the data or tools it reaches; always on if others use it. Most packaged servers speak stdio, so publishing one needs a bridge container that serves it over Streamable HTTP; a server that already speaks HTTP needs none"
+  starters: []
+  cards: []
+  find: "the official MCP Registry (https://registry.modelcontextprotocol.io/v0/servers?search=<word>): servers listed with packages run on your own machine and are the ones to publish, servers with only remotes are already hosted; also GitHub repositories tagged mcp-server"
+  ask: ["which assistant will connect to it: Claude Code, Claude's apps, or something else?", "should it only read, or also change things?"]
+
+- category: Vector databases and AI search
+  source: edgible
+  jobs: [a vector database for my RAG app, semantic search over our documents, store embeddings without paying per query, memory for my AI agent]
+  replaces: [Pinecone, Weaviate Cloud, Zilliz Cloud, Qdrant Cloud]
+  drivers: [cost, privacy, control]
+  fit: {rating: good, why: "fits well when the app using it is elsewhere; when it runs on the same machine, it need not be published at all"}
+  exposure:
+    default: "not published when only an app on the same machine uses it; otherwise its API on api-key, and its admin dashboard, if any, on org"
+    sensitive: not published, or api-key only; embeddings can reveal the text they came from, so treat them like the documents
+  builders: "a free, private vector store for a prototype RAG or agent app, moved to a bigger machine later without changing the code"
+  machine: memory grows with the collection; fast disk
+  starters: []
+  cards: []
+  find: "GitHub repositories tagged vector-database, most starred and recently updated (Weaviate, Qdrant, Milvus, Chroma), and Postgres with pgvector when the app already uses Postgres"
+  ask: ["how many documents or vectors, roughly?", "what will call it, and from where?"]
+
+- category: AI chatbots for customers and communities
+  source: edgible
+  jobs: [a chatbot for my website, an AI that answers customer questions from our docs, a support bot, "an AI bot for our Discord, Slack, or Telegram"]
+  replaces: [Intercom Fin, Chatbase, Tidio, Botpress Cloud, Voiceflow]
+  drivers: [cost, control, privacy]
+  fit: {rating: conditional, why: "the public talks to it, so it must stay up and its model costs must be capped; a hosted chatbot is often simpler for a small business"}
+  exposure:
+    default: "the chat widget or bot webhook on none, because the public and chat platforms cannot sign in; the admin and knowledge base on org; set a spending limit on any paid model API, and rate limits in the app"
+    sensitive: "the same, with only public information in its knowledge base: anything the bot can read, a visitor can get it to say"
+    regulated: "do not let it answer from client, patient, or financial records; send those questions to a person"
+  permissions: "a public bot answers anyone, so its knowledge base must hold only what anyone may see"
+  machine: always on, so usually a small cloud server; a GPU only for a local model
+  starters: []
+  cards: [n8n]
+  find: "awesome-selfhosted's GenAI category, and GitHub repositories tagged chatbot or rag with a website widget or chat-platform integration (for example Dify, Flowise, Typebot)"
+  ask: ["who will talk to it: customers, members, or your team?", "which model: a hosted API with a spending limit, or a local one?"]
+
+- category: AI app builders and agents
+  source: edgible
+  jobs: [build an AI agent without code, prototype a RAG app, chain LLM calls into a workflow, run AI agents on my own data, a private GPTs builder for my team]
+  replaces: [OpenAI GPTs and Assistants, Relevance AI, Stack AI, LangChain hosted tools]
+  drivers: [privacy, cost, control]
+  fit: {rating: good, why: "the builder is a web app for the team, and what it publishes is an API or webhook"}
+  exposure:
+    default: the builder on org; each published flow's API on api-key; webhooks from other services on none
+    sensitive: org and api-key only
+  permissions: "agents act with the credentials they are given: give each one only the keys and tools it needs"
+  builders: "a fast way to prototype an AI feature or product and let early users try it through an API"
+  machine: modest; the model runs elsewhere unless it is local
+  starters: []
+  cards: [n8n, litellm]
+  find: "GitHub repositories tagged ai-agents, llm-app, or low-code with a Docker image, most starred and recently updated (for example Dify, Flowise, Langflow)"
+  ask: ["what should the agent or app do, and for whom?", "which models: hosted APIs or local?"]
+
+- category: LLM observability and evaluation
+  source: edgible
+  jobs: [see what my AI app is doing, trace prompts and responses, track LLM costs per user, evaluate prompts and models, keep prompt logs private]
+  replaces: [LangSmith, Helicone, Braintrust, Weights & Biases Weave]
+  drivers: [privacy, cost, compliance]
+  fit: {rating: good, why: "prompt logs hold users' data, which is the strongest reason to keep them on a machine you control"}
+  exposure:
+    default: the dashboard on org; the ingestion API on api-key
+    sensitive: the same, with a retention limit on stored prompts
+    regulated: "prompt logs inherit the data's rules: if users send health or client data, the logs are that data"
+  machine: a database that grows with traffic; disk for logs
+  starters: []
+  cards: []
+  find: "GitHub repositories tagged llmops or llm-observability, and tensorchord/Awesome-LLMOps (for example Langfuse, Arize Phoenix, Opik)"
+  ask: ["roughly how many requests a day?", "do prompts contain users' personal data?"]
+
+- category: Image, audio, and speech AI
+  source: edgible
+  jobs: [generate images on my own GPU, transcribe meetings privately, text to speech without a subscription, use my gaming PC's GPU from my laptop, run Stable Diffusion or ComfyUI from anywhere]
+  replaces: [Midjourney, Otter.ai, ElevenLabs, Descript transcription]
+  drivers: [cost, privacy, control]
+  fit: {rating: conditional, why: "needs a GPU or Apple Silicon; it fits well when the person already has one at home"}
+  exposure:
+    default: "org: tools such as ComfyUI have no login of their own, so never none; an API for other apps on api-key"
+    sensitive: org only, or not published
+  machine: a GPU with plenty of memory, or Apple Silicon; lots of disk for models
+  starters: []
+  cards: []
+  find: "awesome-selfhosted's GenAI and Media Management categories, and GitHub repositories tagged comfyui, stable-diffusion, whisper, or text-to-speech"
+  ask: ["what GPU or Mac do you have?", "images, transcription, or voice?"]
 
 - category: Software Development - Project Management
   jobs: [host my own Git repositories, a private GitHub, code review for my team]
