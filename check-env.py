@@ -437,6 +437,28 @@ def machine_disk_free() -> float | None:
     return None
 
 
+STATS_UNITS = {"B": 1, "KiB": 1024, "MiB": 1024 ** 2, "GiB": 1024 ** 3, "TiB": 1024 ** 4,
+               "kB": 1000, "MB": 1000 ** 2, "GB": 1000 ** 3}
+
+
+def memory_in_use(prefix: str = "") -> float:
+    """Memory the running containers use now, except this card's own (a copy test-card is
+    running, by its project prefix), so a card is measured against what is really left."""
+    ids = []
+    for line in run(["docker", "ps", "--format", '{{.ID}} {{.Label "com.docker.compose.project"}}']).stdout.splitlines():
+        cid, _, project = line.partition(" ")
+        if not (prefix and project.startswith(prefix)):
+            ids.append(cid)
+    if not ids:
+        return 0.0
+    used = 0.0
+    for usage in run(["docker", "stats", "--no-stream", "--format", "{{.MemUsage}}", *ids]).stdout.splitlines():
+        m = re.match(r"\s*([\d.]+)\s*([A-Za-z]+)", usage)
+        if m and m.group(2) in STATS_UNITS:
+            used += float(m.group(1)) * STATS_UNITS[m.group(2)]
+    return used
+
+
 def image_archs(image: str) -> set[str] | None:
     proc = run(["docker", "buildx", "imagetools", "inspect", image, "--format", "{{json .Manifest}}"])
     if proc.returncode != 0:
@@ -447,7 +469,8 @@ def image_archs(image: str) -> set[str] | None:
     return {ARCH.get(a, a) for a in archs} or None
 
 
-def sizing(report: "Report", card_yml: Path, files: list[Path], env_file: Path, env: dict[str, str]) -> None:
+def sizing(report: "Report", card_yml: Path, files: list[Path], env_file: Path, env: dict[str, str],
+           prefix: str = "") -> None:
     """Compare the minimum recommended for the places being checked with this machine."""
     places = read_places(card_yml)
     if not places:
@@ -463,26 +486,35 @@ def sizing(report: "Report", card_yml: Path, files: list[Path], env_file: Path, 
     info = json.loads(run(["docker", "info", "--format", "{{json .}}"]).stdout or "{}")
     mem, arch = float(info.get("MemTotal", 0)), ARCH.get(info.get("Architecture", ""), info.get("Architecture", ""))
     if need_mem:
+        used = memory_in_use(prefix)
         line = f"memory: {names} wants {human(need_mem)}; Docker has {human(mem)}"
-        report.warn(line, "give Docker more memory, or run a place on another device") if mem < need_mem else report.ok(line)
+        if mem < need_mem:
+            # It can never fit here, whatever else is stopped.
+            report.conflict(line, "give Docker more memory, or run a place on a device with more")
+        elif mem - used < need_mem:
+            report.warn(f"{line}, of which {human(used)} is in use by containers already running",
+                        "stop something that is running, give Docker more memory, or run a place on another device")
+        else:
+            report.ok(f"{line}, {human(mem - used)} of it free")
     if need_disk:
         free = machine_disk_free()
         if free is None:
             report.skip(f"disk: {names} wants {human(need_disk)}; free space could not be measured")
         else:
             line = f"disk: {names} wants {human(need_disk)}; {human(free)} free where Docker keeps its data"
-            report.warn(line, "free some space, or run a place on another device") if free < need_disk else report.ok(line)
+            # The images would not even download, so this stops the check.
+            report.conflict(line, "free some space, or run a place on another device") if free < need_disk else report.ok(line)
     arch_ok = True
     for p in sorted(here):
         archs = places[p].get("arch")
         if archs and arch and arch not in archs:
             arch_ok = False
-            report.warn(f"cpu: place {p} is for {', '.join(archs)}; this machine is {arch}",
-                        "run that place on a device with one of those")
+            report.conflict(f"cpu: place {p} is for {', '.join(archs)}; this machine is {arch}",
+                            "run that place on a device with one of those")
         gpu = places[p].get("gpu", "none")
         if gpu == "required" and "nvidia" not in json.dumps(info.get("Runtimes", {})):
-            report.warn(f"gpu: place {p} needs a GPU, and Docker here has no GPU runtime",
-                        "run that place on a device with a GPU")
+            report.conflict(f"gpu: place {p} needs a GPU, and Docker here has no GPU runtime",
+                            "run that place on a device with a GPU")
         elif gpu == "optional":
             report.note(f"gpu: place {p} can use a GPU, and runs without one")
     for compose in files:
@@ -496,8 +528,8 @@ def sizing(report: "Report", card_yml: Path, files: list[Path], env_file: Path, 
                 continue
             if arch and arch not in archs:
                 arch_ok = False
-                report.warn(f"cpu: {service} ({image}) has no {arch} image; it has {', '.join(sorted(archs))}",
-                            "run this card on a device with one of those")
+                report.conflict(f"cpu: {service} ({image}) has no {arch} image; it has {', '.join(sorted(archs))}",
+                                "run this card on a device with one of those")
     if arch and arch_ok:
         report.ok(f"cpu: this machine is {arch}, and every image has a build for it")
 
@@ -907,7 +939,7 @@ def main(argv: list[str]) -> int:
                     f"or publish this one under another name, such as --name {card.name}-{app['name']}",
                 )
 
-    sizing(report, card_yml, files, env_file, env)
+    sizing(report, card_yml, files, env_file, env, args.project_prefix or "")
     notes(report, files, env_file, env, containers, args.project_prefix)
 
     rerun = shlex.join(["python3", sys.argv[0], *[a for a in argv if a != "--commands"]])
