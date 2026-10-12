@@ -5,8 +5,8 @@
 
 Run it from the root of the cards repo. It writes one page per card (its README, picture,
 apps, and latest test), one page per need in the skill's needs map (what people say, whether
-self-hosting suits it, how to publish it, and the cards for it), an index of each, and
-llms.txt, sitemap.xml, and robots.txt.
+self-hosting suits it, how to publish it, and the cards for it, titled by the hosted
+products people leave for it), an index of each, and llms.txt, sitemap.xml, and robots.txt.
 
 The output is a plain folder with relative links, so the same build works at any address
 and under any path: GitHub Pages, an nginx container, or a bucket. --base-url is used only
@@ -59,6 +59,16 @@ def esc(s: object) -> str:
 def given(v: object) -> object:
     """A needs-map value, or None when it is empty or says n/a."""
     return None if v is None or str(v).strip().lower() in ("", "n/a", "na", "none needed") else v
+
+
+def products(n: dict) -> list[str]:
+    """The hosted products a need replaces, by name, which is what people search for.
+    Descriptions such as "hosted LLM APIs" or "Netflix for owned media" are left out."""
+    return [r for r in n.get("replaces") or [] if (r[:1].isupper() or r[:1].isdigit()) and " for " not in r]
+
+
+def and_list(xs: list[str]) -> str:
+    return xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1]
 
 
 def slug(s: str) -> str:
@@ -117,6 +127,11 @@ class Site:
         for n in needs:
             for c in n.get("cards") or []:
                 self.needs_of.setdefault(c, []).append(n)
+        # Each hosted product people leave, and the needs that replace it.
+        self.leaving: dict[str, list[dict]] = {}
+        for n in needs:
+            for r in products(n):
+                self.leaving.setdefault(r, []).append(n)
 
     # Pages ----------------------------------------------------------------
 
@@ -125,6 +140,7 @@ class Site:
         depth = path.count("/")
         up = "../" * depth
         canonical = f'<link rel="canonical" href="{esc(self.base + "/" + path)}">' if self.base else ""
+        og_url = f'<meta property="og:url" content="{esc(self.base + "/" + path)}">\n' if self.base else ""
         commit = (f' at <a href="{REPO_URL}/commit/{esc(self.commit)}">{esc(self.commit[:7])}</a>'
                   if self.commit else "")
         doc = f"""<!doctype html>
@@ -135,6 +151,11 @@ class Site:
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(description)}">
 {canonical}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Edgible cards">
+<meta property="og:title" content="{esc(title.removesuffix(" | Edgible cards"))}">
+<meta property="og:description" content="{esc(description)}">
+{og_url}<meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="{up}style.css">
 </head>
 <body>
@@ -178,7 +199,7 @@ class Site:
 <ul class="tiles">{"".join(self.card_tile(c, "") for c in patterns)}</ul>
 <h2>Start from a need</h2>
 <p>What people want to self-host, whether it suits a machine of your own, and how to publish it safely. <a href="needs/">All {len(self.needs)} needs</a>.</p>
-{self.leaving_list("needs/")}
+{self.leaving_list("")}
 <h2>With an AI agent</h2>
 <p>The <a href="{SKILL_URL}">edgible-cards skill</a> teaches an AI agent, such as Claude Code, to go from a need to a running, published card, and to look after it.</p>
 """
@@ -187,13 +208,13 @@ class Site:
                   body)
 
     def leaving_list(self, up: str) -> str:
-        """Hosted services people leave, each linked to its need: the way most people search."""
-        items = []
-        for n in self.needs:
-            for r in n.get("replaces") or []:
-                items.append((r.lower(), f'<li><a href="{up}{slug(n["category"])}/">{esc(r)}</a></li>'))
-        items.sort()
-        return f'<p class="leaving-label">Leaving a hosted service?</p><ul class="leaving">{"".join(i for _, i in items)}</ul>'
+        """Hosted products people leave, each linked to the need that replaces it: the way
+        most people search. up is the way to the site's root from the page it is on.
+        A product gets no page of its own: it would repeat its need's page, which search
+        engines treat as a doorway page."""
+        items = "".join(f'<li><a href="{up}needs/{slug(ns[0]["category"])}/">{esc(r)}</a></li>'
+                        for r, ns in sorted(self.leaving.items(), key=lambda kv: kv[0].lower()))
+        return f'<p class="leaving-label">Leaving a hosted service?</p><ul class="leaving">{items}</ul>'
 
     def card_page(self, c: dict) -> None:
         name, card = c["name"], c["card"]
@@ -289,7 +310,7 @@ class Site:
         body = f"""<p class="crumbs"><a href="../">Cards</a> / needs</p>
 <h1>Start from a need</h1>
 <p class="lead">What people want to self-host, in their words, with an honest answer on whether a machine of your own suits it. Some needs are better met elsewhere, and their pages say so.</p>
-{self.leaving_list("")}
+{self.leaving_list("../")}
 {"".join(groups)}
 """
         self.page("needs/", "Self-hosting, need by need | Edgible cards",
@@ -346,14 +367,24 @@ class Site:
         if not n.get("source"):
             sec.append(f'<p class="source">Category from <a href="{AWESOME.format(slug=slug(cat))}">awesome-selfhosted</a>.</p>')
 
-        lead = jobs[0][0].upper() + jobs[0][1:] + "?" if jobs else ""
-        title = f"Self-hosting {cat.lower()}" + (f": leaving {replaces[0]}?" if replaces else "")
+        # The title is what people search for: the products they leave, or, for a category
+        # Edgible added (mostly AI tools), its own name.
+        prods = products(n)
+        if prods:
+            lead = f"Self-hosted alternatives to {and_list(prods)}."
+        else:
+            lead = jobs[0][0].upper() + jobs[0][1:] + "?" if jobs else ""
+        if prods and not n.get("source"):
+            title = f"Self-hosted alternatives to {and_list(prods[:3])}"
+        else:
+            # Lower-case the first word, unless it is an acronym such as AI.
+            title = "Self-hosting " + (cat if cat[1:2].isupper() else cat[:1].lower() + cat[1:])
         body = f"""<p class="crumbs"><a href="../../">Cards</a> / <a href="../">needs</a> / {esc(cat)}</p>
 <h1>{esc(cat)}</h1>
 <p class="lead">{esc(lead)}</p>
 {"".join(sec)}
 """
-        desc = f"{FIT_WORDS.get(rating, rating)} for self-hosting. {fit.get('why', '')}"
+        desc = f"{lead} {FIT_WORDS.get(rating, rating)} for self-hosting: {fit.get('why', '')}"
         self.page(f"needs/{slug(cat)}/", f"{title} | Edgible cards", desc, body)
 
     # Files for machines -----------------------------------------------------

@@ -245,7 +245,7 @@ Writes `images/card-light.svg` and `images/card-dark.svg` for a card. The pictur
 
 ### card-site
 
-Builds the catalog site from a cards repo: a page per card (its README, picture, apps, places, and latest test), a page per need in the skill's [needs map](skills/edgible-cards/needs-map.yaml) (what people say, whether self-hosting suits it, how to publish it, and its cards), an index of each, and `llms.txt`, `sitemap.xml`, and `robots.txt`. `--status` is the regression's `status.json` from the cards repo's `test-status` branch.
+Builds the catalog site from a cards repo: a page per card (its README, picture, apps, places, and latest test), a page per need in the skill's [needs map](skills/edgible-cards/needs-map.yaml) (what people say, whether self-hosting suits it, how to publish it, and its cards, titled by the hosted products people leave for it, such as "Self-hosted alternatives to Pocket, Raindrop.io and Instapaper"), an index of each, and `llms.txt`, `sitemap.xml`, and `robots.txt`. Each page carries Open Graph tags, so a shared link shows its title and description. `--status` is the regression's `status.json` from the cards repo's `test-status` branch.
 
 The output is a plain folder with relative links, so the same build works on GitHub Pages, in an nginx container, or in a bucket, at any path. `--base-url` is the canonical address, used only for each page's canonical link, the sitemap, and `llms.txt`. Edgible/cards' site job runs it and publishes the result.
 
