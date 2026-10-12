@@ -73,7 +73,7 @@
     regulated: "client or patient files need the firm's or practice's rules on where data may be held; a machine you control can suit, with access rules, backups, and advice; a cloud server in the firm's own account and an allowed region often suits better than an office PC"
   permissions: "shared folders and groups decide who sees which files; set them per team or client"
   machine: disk for every synced file, and a backup
-  cards: []
+  cards: [owncloud]
   ask: ["sync to desktop and phone, or a web folder is enough?", "who shares it?"]
 
 - category: Password Managers
