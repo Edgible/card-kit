@@ -235,6 +235,12 @@ Picks the next app to make an app card for, from the first gap in the skill's [n
 ../card-kit/run pick-app --exclude wallabag
 ```
 
+`--app` picks a named app instead, by its name on awesome-selfhosted, and gives the needs-map category it belongs to, preferring one no card covers yet. Grow uses it when it is started for one app, so the merged card still lands in its category.
+
+```bash
+../card-kit/run pick-app --app ownCloud
+```
+
 ### card-image
 
 Writes `images/card-light.svg` and `images/card-dark.svg` for a card. The picture lists the apps, ports, auth modes, and places, from `card.yml`. If a `what` line does not fit its row, the command fails and you shorten that line.
