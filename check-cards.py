@@ -21,6 +21,9 @@ A card of metadata.type app is one app that other cards are built from, so it al
 - name every service and volume <card> or <card>-<something>, and set no container_name,
   so two app cards drop into one Compose file without a clash.
 
+--before-test leaves out the test.yml rule, for a card about to be tested for the
+first time; test-card writes test.yml.
+
 A card may also have test.yml, the latest run of its lifecycle. When it does,
 it must match test.schema.json, give a Verify result for every app in card.yml,
 say pass only when no step failed, and name no hostname.
@@ -141,12 +144,15 @@ def convention_errors(card_dir: Path, card: dict) -> list[str]:
     return errors
 
 
+NO_TEST = "an app card must have test.yml: run test-card"
+
+
 def app_errors(card_dir: Path, card: dict, composes: dict[str, str]) -> list[str]:
     """What an app card breaks of the rules that let it be combined with others."""
     name = card["metadata"]["name"]
     errors = []
     if not (card_dir / "test.yml").is_file():
-        errors.append("an app card must have test.yml: run test-card")
+        errors.append(NO_TEST)
     if len(composes) != 1:
         errors.append(f"an app card has one Compose file, not {len(composes)}")
     places = {app["place"] for app in card["applications"]} | set(card.get("places") or {})
@@ -267,7 +273,10 @@ def main(argv: list[str]) -> int:
     # --untrusted: the card has not been reviewed (an agent wrote it), so nothing in it may
     # reach outside the card before it runs anywhere.
     untrusted = "--untrusted" in argv
-    argv = [a for a in argv if a not in ("--fresh", "--untrusted")]
+    # --before-test: the card is about to be tested for the first time, so it has no
+    # test.yml yet. Every other rule still applies.
+    before_test = "--before-test" in argv
+    argv = [a for a in argv if a not in ("--fresh", "--untrusted", "--before-test")]
     failed = False
     for path in card_paths(argv):
         try:
@@ -279,6 +288,8 @@ def main(argv: list[str]) -> int:
                 )
             validator.validate(card)
             errors = convention_errors(path.parent, card) + test_errors(path.parent, card, test_validator)
+            if before_test:
+                errors = [e for e in errors if e != NO_TEST]
             if untrusted:
                 composes = {f.name: f.read_text() for f in sorted(path.parent.glob("*compose*.yml"))}
                 errors += untrusted_errors(path.parent, composes)
