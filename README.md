@@ -243,6 +243,17 @@ Writes `images/card-light.svg` and `images/card-dark.svg` for a card. The pictur
 ../card-kit/run card-image website
 ```
 
+### card-site
+
+Builds the catalog site from a cards repo: a page per card (its README, picture, apps, places, and latest test), a page per need in the skill's [needs map](skills/edgible-cards/needs-map.yaml) (what people say, whether self-hosting suits it, how to publish it, and its cards), an index of each, and `llms.txt`, `sitemap.xml`, and `robots.txt`. `--status` is the regression's `status.json` from the cards repo's `test-status` branch.
+
+The output is a plain folder with relative links, so the same build works on GitHub Pages, in an nginx container, or in a bucket, at any path. `--base-url` is the canonical address, used only for each page's canonical link, the sitemap, and `llms.txt`. Edgible/cards' site job runs it and publishes the result.
+
+```bash
+git show origin/test-status:status.json > _status.json
+../card-kit/run card-site --out _site --status _status.json --base-url https://edgible.github.io/cards
+```
+
 ### check-map
 
 Checks the skill's [needs map](skills/edgible-cards/needs-map.yaml): every entry has its fields, a fit rating, and both exposure choices. Each category must still be a category in awesome-selfhosted's data, unless the entry has `source: edgible` (a category Edgible added, mostly for AI tools, which must say in `find` where its apps come from), and each card it names must exist in Edgible/cards. It notes a card that no entry names, so a new one gets a place in the map. It reads those sources over the network, and the kit's CI runs it on every pull request.
