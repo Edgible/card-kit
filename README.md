@@ -1,6 +1,6 @@
 # card-kit
 
-The format of an Edgible card, and the tools that check and build one. [Edgible/cards](https://github.com/Edgible/cards) holds the cards people share, and runs these tools.
+The format of an Edgible card, and the tools that check and build one. [Edgible/cards](https://github.com/Edgible/cards) holds the cards people share, and runs these tools. The catalog site, [edgible.github.io/cards](https://edgible.github.io/cards/), is built from it with [card-site](#card-site).
 
 ## What a card is
 
