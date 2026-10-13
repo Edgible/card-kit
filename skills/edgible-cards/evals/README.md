@@ -34,7 +34,7 @@ Each prompt gets two sessions on the logged-in subscription: one answers, one ju
 
 A prompt passes when the skill loaded as it should, every `expect` item holds, and no `must_not` item happened. `report.md` gives each result, the items missed with the judge's evidence, and one line per answer on what would have made it better. Transcripts and answers are saved beside it.
 
-**Nightly, in small batches.** `--rotate today` runs only today's share of the prompts: prompt *i* runs on weekday *i* mod 7, so each runs once a week and a night costs about N/7 prompts, two sessions each. `eval-summary.py results/` then combines the last seven nights, each prompt at its latest result. Edgible/cards runs this every night ([skill-evals.yml](https://github.com/Edgible/cards/blob/main/.github/workflows/skill-evals.yml)) and keeps the report in a public issue. `results.json` and `report.md` have no home folder in them, so they can be published; transcripts stay on the machine.
+**Nightly, in small batches.** `--rotate today` runs only today's share of the prompts: prompt *i* runs on weekday *i* mod 7, so each runs once a week and a night costs about N/7 prompts, two sessions each. `eval-summary.py results/` then combines the last seven nights, each prompt at its latest result. edgible-org/cards runs this every night ([skill-evals.yml](https://github.com/edgible-org/cards/blob/main/.github/workflows/skill-evals.yml)) and keeps the report in a public issue. `results.json` and `report.md` have no home folder in them, so they can be published; transcripts stay on the machine.
 
 If the subscription's usage limit is reached, the run stops, reports the prompts it did not run, and exits 2. Nothing is scored from a limit message.
 

@@ -2,7 +2,7 @@
 
 With the [edgible-cards skill](SKILL.md) installed, you do not need to know which app you want, or phrase anything carefully. Describe your situation the way you would to a friend who knows self-hosting. The prompts below are written in everyday language, the way people ask. Some are real questions from testing the skill.
 
-Under each one is what a good answer does. If your agent's answer falls short of that, it is worth [opening an issue](https://github.com/Edgible/card-kit/issues).
+Under each one is what a good answer does. If your agent's answer falls short of that, it is worth [opening an issue](https://github.com/edgible-org/card-kit/issues).
 
 ## Describe a need
 

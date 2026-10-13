@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/Edgible/card-kit/main/test.schema.json",
+  "$id": "https://raw.githubusercontent.com/edgible-org/card-kit/main/test.schema.json",
   "title": "Edgible card test result",
   "description": "The latest result of a card's lifecycle, in test.yml beside card.yml. Committed only when the result, a step's outcome, or the images change; git history holds earlier results. No device name, hostname, organization id, or password.",
   "type": "object",
