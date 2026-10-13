@@ -45,7 +45,7 @@ import json
 import re
 import subprocess
 import sys
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -149,7 +149,8 @@ def main(argv: list[str]) -> int:
             return 2
 
     failed, due = [], []
-    today = date.today()
+    # UTC, so machines in different time zones agree on the day.
+    today = datetime.now(timezone.utc).date()
     for index, name in enumerate(cards):
         files = files_hash(Path(name))
         entry = status.get(name)
@@ -192,7 +193,7 @@ def main(argv: list[str]) -> int:
         result = match.group(1) if match and run.returncode == 0 else "fail"
         if result == "fail":
             failed.append(name)
-        status[name] = {"result": result, "tested": str(date.today()), "edgible-cli": cli, "files": files,
+        status[name] = {"result": result, "tested": str(today), "edgible-cli": cli, "files": files,
                         "device": args.device}
         # Write as it goes, so a run that stops part way keeps what it learned.
         write_status(args.status, status)
