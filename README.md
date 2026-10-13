@@ -321,6 +321,15 @@ The status directory holds `status.json`, every card's latest result, Edgible ve
 
 It never changes the repo. `test.yml` is the author's record of a version of a card, and the status is CI's record of whether it still passes. It exits 1 when a card it tested failed.
 
+A fleet of machines splits the work, and `test-card` does not change. `--plan FILE` tests nothing: it writes the cards due as a GitHub Actions matrix, one job per card, with the runner labels each job needs. Cards that publish an app of the same name, such as `gitea` and `ci`, share a job, so two machines never publish it at once. Each job runs `test-cards.py --only` on its cards with a status directory of its own, and `--merge DIR...` copies those results into the status. Each result records the `device` it ran on.
+
+```bash
+python3 ../card-kit/test-cards.py --status ../status --spread 7 --plan plan.json --machines runners.json
+python3 ../card-kit/test-cards.py --status ../status --merge results/*
+```
+
+The labels come from the card's `places:`. Every job needs `self-hosted` and `edgible-test`, the label of a machine that tests cards. test-card runs every place on one machine, so their memory is added up. More than 1 GB needs the next `mem-<n>g` label up (2, 4, 8, 16, 32 or 64), and a machine carries the label of every tier it meets: `mem-2g,mem-4g,mem-8g` on a 9 GB one. A card whose `arch` leaves out `amd64` or `arm64` needs the other (`ARM64` or `X64`, GitHub's own labels), and `gpu: required` needs `gpu-nvidia`. `--machines` is a JSON list of the label lists of the machines online; a card none of them can run is left out with "no machine online", rather than waiting for one. The plan has no `edgible` to ask, so it compares with `--cli`, or the newest version in the status.
+
 ## Agent skill
 
 [skills/edgible-cards](skills/edgible-cards/SKILL.md) teaches an AI agent to self-host with Edgible the way this README says. It finds a card that fits. When the person describes a need that none meets, it shortlists apps from awesome-selfhosted for them to choose from. It puts the open choices to the person. Then it deploys and verifies by the card's README. After that, it answers what is running and whether it works, troubleshoots, and handles sign-in and API keys, settings, pausing, backup and restore, upgrades, moves, and removal. When nothing fits, it builds an app card and tests it with `test-card`, and with the person's yes it offers the card, or a fix, as a pull request. It is a plain `SKILL.md` in the open Agent Skills format, with shell commands only, so agents that read that format can use it.
