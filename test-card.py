@@ -137,6 +137,18 @@ def moved_port(app: dict, before: dict[str, str], after: dict[str, str]) -> int:
     return int(moved.pop()) if len(moved) == 1 else app["port"]
 
 
+def free_port(start: int, taken: set[int]) -> int:
+    """The first port from start up that nothing in the org publishes and nothing here listens on."""
+    port = start
+    while True:
+        port += 1
+        if port in taken:
+            continue
+        with socket.socket() as s:
+            if s.connect_ex(("127.0.0.1", port)) != 0:
+                return port
+
+
 def secrets(env_file: Path) -> list[str]:
     """The values of card.env lines that check-env generates: those under a `Generate with:` comment."""
     out, generated = [], False
@@ -422,7 +434,22 @@ def main(argv: list[str]) -> int:
         # A name already taken in the org is published as test-<name>. A card builds the URL it
         # gives out from the app's name (<APP>_URL, by the conventions), so point that at the
         # test's own hostname before anything starts, or the card would reach the org's real app.
-        existing = {a["name"] for a in json.loads(sh("edgible app list --json").stdout)}
+        org_apps = json.loads(sh("edgible app list --json").stdout)
+        existing = {a["name"] for a in org_apps}
+        # A tcp or udp app is reached on the gateway at its own port, which the whole org shares:
+        # a port another app publishes is taken, even when it is free on this machine.
+        gateway = {int(a["port"]) for a in org_apps if a.get("protocol") in ("tcp", "udp") and a.get("port")}
+        for app in apps:
+            if app["protocol"] not in ("tcp", "udp") or app["port"] not in gateway:
+                continue
+            keys = [k for k, v in env_values(env_file).items() if k.endswith("_PORT") and v == str(app["port"])]
+            if len(keys) != 1:
+                raise RuntimeError(f"{app['name']}'s port {app['port']} is taken on the gateway, "
+                                   "and card.env has no single <APP>_PORT to move it")
+            port = free_port(app["port"], gateway)
+            set_env(env_file, keys[0], str(port))
+            notes.append(f"{app['name']}'s port {app['port']} is taken on the org's gateway, so it was tested on {port}.")
+            app["port"] = port
         names = {app["name"]: app["name"] if app["name"] not in existing else f"test-{app['name']}" for app in apps}
         for app_name, name in names.items():
             if name == app_name:
