@@ -106,6 +106,7 @@ Before anything starts, put the card's open choices to the person in one message
 
 - **Which device runs each place.** `edgible device list` prints the names. One machine can hold every place of a small, trusted setup. Say what the card's README says about keeping places apart. Each place in the card's `card.yml` has a minimum (`places:`: memory, disk, CPU type, GPU), which the README's What section says in words. Match it to a device that has that much to spare, not just in total: a laptop already running other apps may not. When none fits, say so now, and offer another device, a larger cloud server, or stopping something, before anything starts.
 - **Each hostname's auth mode**, and what it means: `none` is the open internet, protected only by the app's own login. When the data is sensitive, offer the needs map's `exposure.sensitive` choices, including not publishing at all, even when the card uses `none`.
+- **Their own domain**, for an app people reach from outside. Set it at the first Publish with `--hostnames`, because the CLI cannot add one later without unpublishing the app. It must be a domain they control, not a name under `edgible.com`, which Edgible reserves for the hostnames it generates.
 - **Anything the README marks as a trade-off**, such as a runner with the Docker socket.
 - **Whether it must stay up** after a restart. If so, check the machine first: see [Keep it running](#keep-it-running).
 - **Roles inside the app**, when people must not all see everything: who is admin, and which groups see which records.
@@ -210,7 +211,7 @@ Fix the cause, then run [Is it working](#is-it-working). If the card itself is w
 
 - **Auth mode:** `edgible app update <app> --auth-modes org`. Ask first before changing it to `none`.
 - **A value in `card.env`:** edit it, then run `$C up -d --wait`, which recreates the services the change affects. Run `check-env` first when the change is a port.
-- **Host port or hostname:** the CLI cannot change a published app's port or hostnames. Change `<APP>_PORT` (or the card's `<APP>_URL`, for the person's own domain), run `$C up -d --wait`, then `edgible app delete <app> --yes` and publish it again as in the README, with `--hostnames` for an own domain. The generated hostname comes from the app's name, so it stays the same. Expect a short outage, and verify through Edgible's nameservers.
+- **Host port or hostname:** the CLI cannot change a published app's port or hostnames. Change `<APP>_PORT` (or the card's `<APP>_URL`, for the person's own domain), run `$C up -d --wait`, then `edgible app delete <app> --yes` and publish it again as in the README, with `--hostnames` for an own domain. The generated hostname comes from the app's name, so it stays the same. An own domain is one the person controls, pointed at the generated hostname with a `CNAME`: Edgible refuses any name under `edgible.com`, which is reserved for the hostnames it generates. Expect a short outage, and verify through Edgible's nameservers.
 - **Pause:** `edgible app update <app> --target-state suspended`, then `$C stop`. **Resume:** `$C start`, then `--target-state running`. The data stays.
 
 ### Back up and restore
