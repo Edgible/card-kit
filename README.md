@@ -1,6 +1,6 @@
 # card-kit
 
-The format of an Edgible card, and the tools that check and build one. [Edgible/cards](https://github.com/Edgible/cards) holds the cards people share, and runs these tools. The catalog site, [edgible.github.io/cards](https://edgible.github.io/cards/), is built from it with [card-site](#card-site).
+The format of an Edgible card, and the tools that check and build one. [edgible-org/cards](https://github.com/edgible-org/cards) holds the cards people share, and runs these tools. The catalog site, [cards.edgible.org](https://cards.edgible.org), is built from it with [card-site](#card-site).
 
 ## What a card is
 
@@ -189,7 +189,7 @@ A tool that checks the machine a card runs on does not run in a container, becau
 Clone this repo beside the repo you work in, and run a tool by its name from that repo's root:
 
 ```bash
-git clone https://github.com/Edgible/card-kit ../card-kit
+git clone https://github.com/edgible-org/card-kit ../card-kit
 ../card-kit/run check-cards
 ../card-kit/run card-image website
 ```
@@ -216,7 +216,7 @@ docs: [Gitea, https://docs.gitea.com]
 ../card-kit/run card-readme gitea gitea-readme.yml
 ```
 
-The YAML file must be inside the repo, because `run` mounts only the repo and the kit. Keep it out of the commit unless you want it there. Fetch reads from `Edgible/cards`.
+The YAML file must be inside the repo, because `run` mounts only the repo and the kit. Keep it out of the commit unless you want it there. Fetch reads from `edgible-org/cards`.
 
 ### check-cards
 
@@ -229,7 +229,7 @@ Checks each `card.yml` against [card.schema.json](card.schema.json), checks that
 
 ### pick-app
 
-Picks the next app to make an app card for, from the first gap in the skill's [needs map](skills/edgible-cards/needs-map.yaml): a category people ask about that no card covers yet. It lists that category's apps on awesome-selfhosted that a card can be made from (a Docker image, not archived, updated in the last six months, no third-party service, not already a card or excluded), most starred first, as JSON. Categories Edgible adds, mostly AI tools, have no awesome-selfhosted data and are listed separately. Edgible/cards' nightly grow job uses it.
+Picks the next app to make an app card for, from the first gap in the skill's [needs map](skills/edgible-cards/needs-map.yaml): a category people ask about that no card covers yet. It lists that category's apps on awesome-selfhosted that a card can be made from (a Docker image, not archived, updated in the last six months, no third-party service, not already a card or excluded), most starred first, as JSON. Categories Edgible adds, mostly AI tools, have no awesome-selfhosted data and are listed separately. edgible-org/cards' nightly grow job uses it.
 
 ```bash
 ../card-kit/run pick-app --exclude wallabag
@@ -253,16 +253,16 @@ Writes `images/card-light.svg` and `images/card-dark.svg` for a card. The pictur
 
 Builds the catalog site from a cards repo: a page per card (its README, picture, apps, places, and latest test), a page per need in the skill's [needs map](skills/edgible-cards/needs-map.yaml) (what people say, whether self-hosting suits it, how to publish it, and its cards, titled by the hosted products people leave for it, such as "Self-hosted alternatives to Pocket, Raindrop.io and Instapaper"), an index of each, and `llms.txt`, `sitemap.xml`, and `robots.txt`. Each page carries Open Graph tags, so a shared link shows its title and description. `--status` is the regression's `status.json` from the cards repo's `test-status` branch.
 
-The output is a plain folder with relative links, so the same build works on GitHub Pages, in an nginx container, or in a bucket, at any path. `--base-url` is the canonical address, used only for each page's canonical link, the sitemap, and `llms.txt`. Edgible/cards' site job runs it and publishes the result.
+The output is a plain folder with relative links, so the same build works on GitHub Pages, in an nginx container, or in a bucket, at any path. `--base-url` is the canonical address, used only for each page's canonical link, the sitemap, and `llms.txt`. edgible-org/cards' site job runs it and publishes the result.
 
 ```bash
 git show origin/test-status:status.json > _status.json
-../card-kit/run card-site --out _site --status _status.json --base-url https://edgible.github.io/cards
+../card-kit/run card-site --out _site --status _status.json --base-url https://cards.edgible.org
 ```
 
 ### check-map
 
-Checks the skill's [needs map](skills/edgible-cards/needs-map.yaml): every entry has its fields, a fit rating, and both exposure choices. Each category must still be a category in awesome-selfhosted's data, unless the entry has `source: edgible` (a category Edgible added, mostly for AI tools, which must say in `find` where its apps come from), and each card it names must exist in Edgible/cards. It notes a card that no entry names, so a new one gets a place in the map. It reads those sources over the network, and the kit's CI runs it on every pull request.
+Checks the skill's [needs map](skills/edgible-cards/needs-map.yaml): every entry has its fields, a fit rating, and both exposure choices. Each category must still be a category in awesome-selfhosted's data, unless the entry has `source: edgible` (a category Edgible added, mostly for AI tools, which must say in `find` where its apps come from), and each card it names must exist in edgible-org/cards. It notes a card that no entry names, so a new one gets a place in the map. It reads those sources over the network, and the kit's CI runs it on every pull request.
 
 ```bash
 ./run check-map
@@ -273,7 +273,7 @@ Checks the skill's [needs map](skills/edgible-cards/needs-map.yaml): every entry
 Checks a fetched card against the machine it is about to run on, after `card.env` is edited and before the containers start. A card README fetches it on its own:
 
 ```bash
-curl -fsSLo check-env.py https://raw.githubusercontent.com/Edgible/card-kit/main/check-env.py
+curl -fsSLo check-env.py https://raw.githubusercontent.com/edgible-org/card-kit/main/check-env.py
 python3 check-env.py website
 python3 check-env.py website -f kuma-compose.yml
 ```
@@ -341,7 +341,7 @@ Most people describe a need, not an app. [needs-map.yaml](skills/edgible-cards/n
 For Claude Code, clone this repo and link the skill into your skills directory. A `git pull` then updates it:
 
 ```bash
-git clone https://github.com/Edgible/card-kit ~/.card-kit
+git clone https://github.com/edgible-org/card-kit ~/.card-kit
 mkdir -p ~/.claude/skills
 ln -s ~/.card-kit/skills/edgible-cards ~/.claude/skills/edgible-cards
 ```

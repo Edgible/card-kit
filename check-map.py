@@ -9,7 +9,7 @@ the map does not define, a fit rating the skill knows, and the default and sensi
 exposure choices (regulated is optional). Its category must be a category name in
 awesome-selfhosted's data, which renames one now and then, unless the entry has source
 edgible: a category Edgible added, which must say in find where its apps come from, and
-must not reuse an awesome-selfhosted name. Its cards must exist in Edgible/cards. It also
+must not reuse an awesome-selfhosted name. Its cards must exist in edgible-org/cards. It also
 lists the cards that no entry names, so a new one gets a place in the map.
 
 It reads awesome-selfhosted-data and the GitHub API over the network, and exits 1 on a
@@ -78,7 +78,7 @@ def main() -> int:
         if not {"default", "sensitive"} <= set(e.get("exposure", {})):
             problems.append(f"{c}: exposure needs default and sensitive")
         problems += [f"{c}: unknown exposure {k}" for k in sorted(set(e.get("exposure", {})) - EXPOSURE)]
-        problems += [f"{c}: no card {s} in Edgible/cards" for s in e.get("cards", []) if s not in card_names]
+        problems += [f"{c}: no card {s} in edgible-org/cards" for s in e.get("cards", []) if s not in card_names]
     for p in problems:
         print(p)
     named = {s for e in entries for s in e.get("cards", [])}

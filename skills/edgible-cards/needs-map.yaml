@@ -15,7 +15,7 @@
 #   exposure   how to publish it. default is the usual choice. sensitive is for when the person
 #              says the data is private or sensitive.
 #   machine    what the machine needs beyond Docker
-#   cards      Edgible cards for it (github.com/Edgible/cards): app cards first, then patterns
+#   cards      Edgible cards for it (github.com/edgible-org/cards): app cards first, then patterns
 #   ask        the one or two questions whose answers change the recommendation
 #
 # Optional:

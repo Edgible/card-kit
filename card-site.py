@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the catalog site: a static website of the cards, their test results, and the needs map.
 
-    ../card-kit/run card-site --out _site --status _status.json --base-url https://edgible.github.io/cards
+    ../card-kit/run card-site --out _site --status _status.json --base-url https://cards.edgible.org
 
 Run it from the root of the cards repo. It writes one page per card (its README, picture,
 apps, and latest test), one page per need in the skill's needs map (what people say, whether
@@ -33,8 +33,8 @@ import yaml
 
 KIT = Path(__file__).resolve().parent
 NEEDS_MAP = KIT / "skills" / "edgible-cards" / "needs-map.yaml"
-REPO_URL = "https://github.com/Edgible/cards"
-SKILL_URL = "https://github.com/Edgible/card-kit/tree/main/skills/edgible-cards"
+REPO_URL = "https://github.com/edgible-org/cards"
+SKILL_URL = "https://github.com/edgible-org/card-kit/tree/main/skills/edgible-cards"
 AWESOME = "https://awesome-selfhosted.net/tags/{slug}.html"
 
 AUTH_WORDS = {"none": "open to anyone", "org": "org login", "api-key": "API key"}
@@ -167,7 +167,7 @@ class Site:
 {body}
 </main>
 <footer class="wrap">
-<p>Built {self.built} from <a href="{REPO_URL}">Edgible/cards</a>{commit}. Cards are free to run and share under the repo's license. Test results come from the nightly regression, on a real Edgible serving device.</p>
+<p>Built {self.built} from <a href="{REPO_URL}">edgible-org/cards</a>{commit}. Cards are free to run and share under the repo's license. Test results come from the nightly regression, on a real Edgible serving device.</p>
 </footer>
 </body>
 </html>
@@ -513,7 +513,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--out", type=Path, default=Path("_site"), help="the folder to write; it is replaced")
     ap.add_argument("--status", type=Path, help="the regression's status.json")
     ap.add_argument("--needs", type=Path, default=NEEDS_MAP, help="the needs map; default: the one in this kit")
-    ap.add_argument("--base-url", default="", help="the site's address, such as https://edgible.github.io/cards")
+    ap.add_argument("--base-url", default="", help="the site's address, such as https://cards.edgible.org")
     ap.add_argument("--commit", default="", help="the cards commit being built, shown in the footer")
     args = ap.parse_args(argv)
 

@@ -5,7 +5,7 @@ description: Self-host apps with Edgible from tested Edgible cards, on a machine
 
 # Self-host with Edgible cards
 
-A **card** is a self-hosted setup written down so anyone can run it: [Edgible/cards](https://github.com/Edgible/cards). It is one of two types, `metadata.type` in its `card.yml`. An **app card** is one self-hosted app, tested end to end on a real Edgible serving device. A **pattern card** is several apps wired together for a purpose, often across several machines, built from app cards. App cards used to be called starters, in a repo now archived. Both types use one format, written down in [Edgible/card-kit](https://github.com/Edgible/card-kit), which also holds the tools that check and test them. The card-kit README is the source of truth for the format. Read it rather than guessing.
+A **card** is a self-hosted setup written down so anyone can run it: [edgible-org/cards](https://github.com/edgible-org/cards). It is one of two types, `metadata.type` in its `card.yml`. An **app card** is one self-hosted app, tested end to end on a real Edgible serving device. A **pattern card** is several apps wired together for a purpose, often across several machines, built from app cards. App cards used to be called starters, in a repo now archived. Both types use one format, written down in [edgible-org/card-kit](https://github.com/edgible-org/card-kit), which also holds the tools that check and test them. The card-kit README is the source of truth for the format. Read it rather than guessing.
 
 Work from a card whenever one fits. Its README is a tested path, and following it gives the same result for everyone. Improvise only where the card leaves a choice open, and say so when you do.
 
@@ -87,7 +87,7 @@ The person names an app ("self-host Miniflux") or describes a need ("something f
 List what exists. Cards are the top-level directories that hold a `card.yml`, and the repo's README lists them by type, with each one's test status:
 
 ```bash
-gh api repos/Edgible/cards/contents \
+gh api repos/edgible-org/cards/contents \
   --jq '.[] | select(.type == "dir" and (.name | startswith(".") | not)) | .name'
 ```
 
@@ -249,7 +249,7 @@ Then run [Is it working](#is-it-working).
 
    ```bash
    new=$(mktemp -d)
-   curl -fsSL https://github.com/Edgible/cards/archive/refs/heads/main.tar.gz \
+   curl -fsSL https://github.com/edgible-org/cards/archive/refs/heads/main.tar.gz \
      | tar -xz --strip-components=2 -C "$new" cards-main/umami
    diff -ru -x card.env -x images -x test.yml "$dir" "$new"
    diff <(grep -oE '^[A-Z0-9_]+=' "$dir/card.env") <(grep -oE '^[A-Z0-9_]+=' "$new/card.env")
@@ -327,7 +327,7 @@ Offer two or three candidates in one message. For each, give what it is best at 
 
 When nothing fits, offer to build an app card. First check the cards README's **What is not an app card** list: an open resolver or relay, an app with no maintained container image, or an archived project gets a plain no, with the reason.
 
-1. Read the [cards README](https://github.com/Edgible/cards#what-a-card-is) and the [card-kit README](https://github.com/Edgible/card-kit), then copy the shape of the app card closest to the new app. Set `metadata.type: app`.
+1. Read the [cards README](https://github.com/edgible-org/cards#what-a-card-is) and the [card-kit README](https://github.com/edgible-org/card-kit), then copy the shape of the app card closest to the new app. Set `metadata.type: app`.
 2. Follow the format: pinned image versions; every variable, service and volume prefixed with the app's name; no `container_name`; each secret empty with a `# Generate with:` comment; each hostname's auth mode chosen from the cards README's table; and `prepare.sh` when the first visitor would otherwise make the admin.
 3. Write the README with `card-readme`, and check the files with `check-cards` (see the card-kit README for `run`).
 4. Test it on the person's serving device until it passes: `python3 test-card.py <name> --device <device> --by agent`. Put inputs only a person may fill in `test/inputs.env`, and the app's own end-to-end checks in `test/<name>.sh`.
@@ -349,13 +349,13 @@ If the app is one part of a bigger setup, a pattern card that combines it with o
 
 Offer this, and do it only with the person's yes.
 
-[CONTRIBUTING.md](https://github.com/Edgible/cards/blob/main/CONTRIBUTING.md) in Edgible/cards is the process. Read it and follow it. Where it differs from what is written here, it wins. In short:
+[CONTRIBUTING.md](https://github.com/edgible-org/cards/blob/main/CONTRIBUTING.md) in edgible-org/cards is the process. Read it and follow it. Where it differs from what is written here, it wins. In short:
 
 - **Scrub before anything leaves the machine.** Remove device names, hostnames, the organization id, secrets, and the person's own domain from every file. `check-cards` catches some of them, and you check the rest.
-- **Check the name is free:** a 404 from `gh api repos/Edgible/cards/contents/<name>` means it is.
-- **Use a fork** unless the person can push to the Edgible repo: `gh repo fork Edgible/cards --clone`. Work on a branch, and never push to `main`.
+- **Check the name is free:** a 404 from `gh api repos/edgible-org/cards/contents/<name>` means it is.
+- **Use a fork** unless the person can push to the Edgible repo: `gh repo fork edgible-org/cards --clone`. Work on a branch, and never push to `main`.
 - **Fill in the repo's pull request template.** Read `.github/PULL_REQUEST_TEMPLATE.md`, write its sections into the body with the `result:` lines of the passing `test-card` run, tick only the checklist items you actually checked, and tick the box that says an AI agent made it. Pass that as `gh pr create --body-file`.
-- **If you could not make it pass,** do not open a pull request. Offer an issue from the repo's request template instead: read `.github/ISSUE_TEMPLATE/app-request.md` (or `pattern-request.md` for a pattern), fill in its sections with what you tried and where it failed, and run `gh issue create --repo Edgible/cards --title "App request: <app>" --label app-request --body-file <file>`.
+- **If you could not make it pass,** do not open a pull request. Offer an issue from the repo's request template instead: read `.github/ISSUE_TEMPLATE/app-request.md` (or `pattern-request.md` for a pattern), fill in its sections with what you tried and where it failed, and run `gh issue create --repo edgible-org/cards --title "App request: <app>" --label app-request --body-file <file>`.
 
 A maintainer tests a new card on their own device before merging. Once merged, the nightly regression keeps testing it.
 

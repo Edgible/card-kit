@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/Edgible/card-kit/main/card.schema.json",
+  "$id": "https://raw.githubusercontent.com/edgible-org/card-kit/main/card.schema.json",
   "title": "Edgible card",
   "description": "Source of truth for a shareable pattern. A valid card has no device name, device id, hostname, organization id, password, or volume data.",
   "type": "object",

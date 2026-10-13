@@ -19,7 +19,7 @@ When the card has prepare.sh, Start runs it and shows it. Everything else comes 
 card.yml and the Compose files, the same way on every card:
 How (Fetch, Edit card.env, Check, Start, Publish), each app's Verify check by its auth
 mode, Tear down, and the sizing sentence in What, from places:. Fetch reads from
-Edgible/cards.
+edgible-org/cards.
 """
 from __future__ import annotations
 
@@ -197,7 +197,7 @@ nano {name}/card.env
 ### 3. Check
 
 {FENCE}bash
-curl -fsSLo check-env.py https://raw.githubusercontent.com/Edgible/card-kit/main/check-env.py
+curl -fsSLo check-env.py https://raw.githubusercontent.com/edgible-org/card-kit/main/check-env.py
 python3 check-env.py {name}
 {FENCE}
 

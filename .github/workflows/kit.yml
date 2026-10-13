@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   cards:
-    # A change to the kit must still pass every card in Edgible/cards.
+    # A change to the kit must still pass every card in edgible-org/cards.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,9 +18,9 @@ jobs:
           path: card-kit
       - uses: actions/checkout@v4
         with:
-          repository: Edgible/cards
+          repository: edgible-org/cards
           path: cards
-      - name: check-cards on Edgible/cards
+      - name: check-cards on edgible-org/cards
         run: |
           cd cards
           # Cards sit at the top level; before that move they were under cards/.
