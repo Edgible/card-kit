@@ -22,7 +22,7 @@ A card is one of two types, set as `metadata.type` in `card.yml`:
 | `card.env` | Machine settings, read by the Compose file. Secrets are empty in git. |
 | `*compose*.yml` | The Compose files the card runs, next to `card.yml`. |
 | `prepare.sh` | Optional: what runs after Start and before Publish, such as making the admin so no setup page is ever public. See [Prepare](#prepare). |
-| `images/` | Optional pictures drawn from `card.yml` by `card-image`. |
+| `images/` | Optional pictures: `card-light.svg` and `card-dark.svg`, drawn from `card.yml` by `card-image`, and `icon.svg` (or `icon.png`), the app's own logo, square, fetched by `card-icon`. The catalog site shows the icon on the card's tile and page, and the Edgible symbol for a card without one. |
 | `etc/` | Optional sample files the card hands you, such as a PDF or a page. |
 | `test/` | Optional inputs for `test-card`: values only a person may fill, and the card's own checks. See [Test inputs](#test-inputs). |
 | `test.yml` | The latest run of the card's lifecycle. Every app card has one; for a pattern it is optional. See [Test results](#test-results). |
@@ -249,6 +249,14 @@ Writes `images/card-light.svg` and `images/card-dark.svg` for a card. The pictur
 ../card-kit/run card-image website
 ```
 
+
+### card-icon
+
+Fetches a card's icon, its app's own logo, into `images/icon.svg`, or `icon.png` when no SVG exists. It looks the card's name up in two open sets of self-hosted app logos, [dashboard-icons](https://github.com/homarr-labs/dashboard-icons) (Apache-2.0) and [selfh.st icons](https://github.com/selfhst/icons) (CC BY 4.0), SVG first. `--slug` names the app when it differs from the card. A pattern, or a card for a generic service, needs no icon: the site shows the Edgible symbol. The logos stay their apps' trademarks, used to name the app.
+
+```bash
+../card-kit/run card-icon umami
+```
 ### card-site
 
 Builds the catalog site from a cards repo: a page per card (its README, picture, apps, places, and latest test), a page per need in the skill's [needs map](skills/edgible-cards/needs-map.yaml) (what people say, whether self-hosting suits it, how to publish it, and its cards, titled by the hosted products people leave for it, such as "Self-hosted alternatives to Pocket, Raindrop.io and Instapaper"), an index of each, and `llms.txt`, `sitemap.xml`, and `robots.txt`. Each page carries Open Graph tags, so a shared link shows its title and description. `--status` is the regression's `status.json` from the cards repo's `test-status` branch.

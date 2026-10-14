@@ -33,6 +33,11 @@ import yaml
 
 KIT = Path(__file__).resolve().parent
 NEEDS_MAP = KIT / "skills" / "edgible-cards" / "needs-map.yaml"
+# Fonts, logo and favicon shared with Edgible's guides, copied into every build as assets/.
+ASSETS = KIT / "site"
+# A card's icon: its app's own logo, square, from card-icon. A card without one shows the
+# Edgible symbol on a navy tile instead.
+ICONS = ("icon.svg", "icon.png")
 REPO_URL = "https://github.com/edgible-org/cards"
 SKILL_URL = "https://github.com/edgible-org/card-kit/tree/main/skills/edgible-cards"
 AWESOME = "https://awesome-selfhosted.net/tags/{slug}.html"
@@ -156,19 +161,20 @@ class Site:
 <meta property="og:title" content="{esc(title.removesuffix(" | Edgible cards"))}">
 <meta property="og:description" content="{esc(description)}">
 {og_url}<meta name="twitter:card" content="summary">
+<link rel="icon" type="image/png" href="{up}assets/images/favicon.png">
 <link rel="stylesheet" href="{up}style.css">
 </head>
 <body>
 <header class="top"><div class="wrap">
-<a class="brand" href="{up}">Edgible cards</a>
+<a class="brand" href="{up}"><img src="{up}assets/images/edgible-logo-white.png" alt="Edgible" width="107" height="24"><span>Cards</span></a>
 <nav><a href="{up}#app-cards">Apps</a><a href="{up}#pattern-cards">Patterns</a><a href="{up}needs/">Needs</a><a href="{REPO_URL}">GitHub</a></nav>
 </div></header>
 <main class="wrap">
 {body}
 </main>
-<footer class="wrap">
+<footer><div class="wrap">
 <p>Built {self.built} from <a href="{REPO_URL}">edgible-org/cards</a>{commit}. Cards are free to run and share under the repo's license. Test results come from the nightly regression, on a real Edgible serving device.</p>
-</footer>
+</div></footer>
 </body>
 </html>
 """
@@ -178,8 +184,21 @@ class Site:
         if not path.endswith(".html"):
             self.pages.append(path)
 
+    def icon(self, c: dict, up: str, size: int) -> str:
+        """The card's icon, copied beside its page, or the Edgible placeholder."""
+        for f in ICONS:
+            src = c["dir"] / "images" / f
+            if src.exists():
+                dest = self.out / c["name"] / f
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(src, dest)
+                return (f'<img class="icon" src="{up}{esc(c["name"])}/{f}" alt="" '
+                        f'width="{size}" height="{size}" loading="lazy">')
+        return f'<span class="icon placeholder" style="width:{size}px;height:{size}px" aria-hidden="true"></span>'
+
     def card_tile(self, c: dict, up: str) -> str:
-        return (f'<li class="tile"><a href="{up}{esc(c["name"])}/"><strong>{esc(c["name"])}</strong></a>'
+        return (f'<li class="tile"><a class="tile-head" href="{up}{esc(c["name"])}/">{self.icon(c, up, 40)}'
+                f'<strong>{esc(c["name"])}</strong></a>'
                 f'<span>{esc(c["description"])}</span>{status_pill(self.status.get(c["name"]))}</li>')
 
     def index(self) -> None:
@@ -247,7 +266,7 @@ class Site:
                        f'alt="The apps, ports, auth modes, and places in the {esc(name)} card"></picture>')
         kind = "App card" if c["type"] == "app" else "Pattern card"
         body = f"""<p class="crumbs"><a href="../">Cards</a> / {esc(name)}</p>
-<h1>{esc(name)}</h1>
+<h1 class="with-icon">{self.icon(c, "../", 56)}<span>{esc(name)}</span></h1>
 <p class="lead">{esc(c["description"])}</p>
 <p class="meta"><span class="kind">{kind}</span>{status_pill(st)}<a href="{REPO_URL}/tree/main/{esc(name)}">Source on GitHub</a></p>
 {picture}
@@ -448,6 +467,7 @@ Each card page has how to start, publish, check, and remove the card. Each need 
             shutil.rmtree(self.out)
         self.out.mkdir(parents=True)
         (self.out / "style.css").write_text(STYLE)
+        shutil.copytree(ASSETS, self.out / "assets", ignore=shutil.ignore_patterns("README.md"))
         # GitHub Pages runs Jekyll on a branch build unless this is present; harmless elsewhere.
         (self.out / ".nojekyll").write_text("")
         self.index()
@@ -463,29 +483,46 @@ Each card page has how to start, publish, check, and remove the card. Each need 
         self.robots()
 
 
-STYLE = """:root{--bg:#f6f7fb;--panel:#ffffff;--ink:#000033;--muted:#4a4f66;--edge:#d6dae6;--brand:#2e4a9e;--link:#2f5fb0;
---pass-bg:#e3f4e8;--pass:#1d6b37;--fail-bg:#fbe5e3;--fail:#9b2318;--none-bg:#eceef4;--none:#4a4f66;--code:#eef0f6}
-@media (prefers-color-scheme:dark){:root{--bg:#0d1020;--panel:#151a2e;--ink:#e8eaf4;--muted:#a3a8bf;--edge:#2a3150;--brand:#9db2ff;
---link:#9db2ff;--pass-bg:#173524;--pass:#8fdca8;--fail-bg:#3d1a17;--fail:#f2a59c;--none-bg:#232a44;--none:#b6bbd2;--code:#1d2340}}
+STYLE = """/* Edgible's brand, as on guides.edgible.com: Jost (standing in for the licensed brand face), Iosevka for code,
+navy bands at the top and bottom, orange links. */
+@font-face{font-family:"Jost";src:url("assets/fonts/Jost-var.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:"Jost";src:url("assets/fonts/Jost-Italic-var.woff2") format("woff2");font-weight:100 900;font-style:italic;font-display:swap}
+@font-face{font-family:"Iosevka";src:url("assets/fonts/Iosevka-400.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Iosevka";src:url("assets/fonts/Iosevka-700.woff2") format("woff2");font-weight:700;font-display:swap}
+:root{--navy:#000033;--navy-mid:#2e4a9e;--bg:#f5f6fa;--panel:#ffffff;--ink:#000033;--muted:#4a4f66;--edge:#d6dae6;--link:#8b4513;
+--pass-bg:#e3f4e8;--pass:#1d6b37;--fail-bg:#fbe5e3;--fail:#9b2318;--none-bg:#eceef4;--none:#4a4f66;--code:#e2e6f1;--code-edge:#c8cee1}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1020;--panel:#151a2e;--ink:#e8eaf4;--muted:#a3a8bf;--edge:#2a3150;--link:#ffa07a;
+--pass-bg:#173524;--pass:#8fdca8;--fail-bg:#3d1a17;--fail:#f2a59c;--none-bg:#232a44;--none:#b6bbd2;--code:#1d2340;--code-edge:#2a3150}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 "Jost",system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;min-height:100vh}
 a{color:var(--link)}
-.wrap{max-width:960px;margin:0 auto;padding:0 16px}
-.top{background:var(--panel);border-bottom:1px solid var(--edge)}
-.top .wrap{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;justify-content:space-between;padding-top:12px;padding-bottom:12px}
-.brand{font-weight:700;color:var(--brand);text-decoration:none;font-size:18px}
-nav{display:flex;flex-wrap:wrap;gap:16px}nav a{text-decoration:none;color:var(--muted)}nav a:hover{color:var(--ink)}
-main{padding-top:24px;padding-bottom:48px}
-h1{font-size:2rem;line-height:1.2;margin:.2em 0 .3em}h2{font-size:1.3rem;margin:2em 0 .5em}h3{font-size:1.1rem}
-.hero h1{font-size:2.3rem;max-width:20ch}.hero p{max-width:65ch}
-.lead{font-size:1.15rem;color:var(--muted);max-width:65ch}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px}
+.top{background:var(--navy);color:#fff}
+.top .wrap{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;justify-content:space-between;padding-top:14px;padding-bottom:14px}
+.brand{display:flex;align-items:center;gap:12px;color:#fff;text-decoration:none;font-size:20px;font-weight:500;letter-spacing:.02em}
+.brand img{height:24px;width:auto;display:block}
+.brand span{border-left:1px solid rgba(255,255,255,.4);padding-left:12px}
+nav{display:flex;flex-wrap:wrap;gap:18px}nav a{text-decoration:none;color:rgba(255,255,255,.85)}nav a:hover{color:#fff}
+main.wrap{padding-top:40px;padding-bottom:56px;flex:1;width:100%}
+h1,h2,h3{font-weight:600;letter-spacing:-.01em}
+h1{font-size:2.1rem;line-height:1.2;margin:.2em 0 .3em}h2{font-size:1.4rem;margin:2em 0 .5em}h3{font-size:1.1rem}
+h1.with-icon{display:flex;align-items:center;gap:16px}
+.hero h1{font-size:2.5rem;max-width:20ch}.hero p{max-width:65ch}
+.lead{font-size:1.2rem;color:var(--muted);max-width:65ch}
 .stats{font-weight:600}
 .crumbs{color:var(--muted);font-size:.9rem;margin:0}
 .meta{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
 .kind{font-weight:600}
-.tiles{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-.tile{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
-.tile a{text-decoration:none}.tile span:not(.pill){color:var(--muted);font-size:.93rem}
+.tiles{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.tile{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;transition:border-color .15s,box-shadow .15s}
+.tile:hover{border-color:var(--navy-mid);box-shadow:0 2px 10px rgba(0,0,51,.08)}
+.tile a{text-decoration:none;color:var(--ink)}.tile span:not(.pill):not(.icon){color:var(--muted);font-size:.95rem}
+.tile-head{display:flex;align-items:center;gap:12px;font-size:1.1rem}
+.icon{flex:none;border-radius:10px;object-fit:contain;display:inline-block}
+/* A logo sits on a white tile, like an app icon, so a black logo still reads in dark mode. */
+img.icon{background:#fff;padding:5px;border:1px solid var(--edge)}
+.icon.placeholder{background:var(--navy) url("assets/images/edgible-symbol-white.png") center/58% no-repeat}
+@media (prefers-color-scheme:dark){.icon.placeholder{background-color:var(--navy-mid)}}
 .pill{display:inline-block;border-radius:999px;padding:1px 10px;font-size:.8rem;font-weight:600;white-space:nowrap}
 .pill.pass{background:var(--pass-bg);color:var(--pass)}.pill.fail{background:var(--fail-bg);color:var(--fail)}
 .pill.untested,.pill.neutral{background:var(--none-bg);color:var(--none)}
@@ -496,15 +533,18 @@ h1{font-size:2rem;line-height:1.2;margin:.2em 0 .3em}h2{font-size:1.3rem;margin:
 .leaving{list-style:none;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:0}
 .card-image img{max-width:100%;height:auto;display:block;margin:16px 0}
 .scroll{overflow-x:auto}
-table{border-collapse:collapse;width:100%;background:var(--panel);font-size:.95rem}
-th,td{border:1px solid var(--edge);padding:6px 10px;text-align:left;vertical-align:top}th{font-weight:600}
-code{background:var(--code);border-radius:4px;padding:1px 4px;font-size:.9em}
-pre{background:var(--code);border-radius:8px;padding:12px 14px;overflow-x:auto}pre code{padding:0;background:none}
+table{border-collapse:collapse;width:100%;background:var(--panel);font-size:.95rem;border-radius:8px;overflow:hidden}
+th,td{border:1px solid var(--edge);padding:7px 11px;text-align:left;vertical-align:top}
+th{font-weight:600;background:var(--navy-mid);color:#fff;border-color:var(--navy-mid)}
+code,pre{font-family:"Iosevka","SFMono-Regular",Menlo,monospace}
+code{background:var(--code);border:1px solid var(--code-edge);border-radius:4px;padding:0 .35em;font-size:.9em}
+pre{background:var(--code);border:1px solid var(--code-edge);border-radius:8px;padding:12px 14px;overflow-x:auto}pre code{padding:0;background:none;border:0}
 dt{font-weight:600;margin-top:10px}dd{margin:2px 0 0 0}
 .readme{border-top:1px solid var(--edge);margin-top:32px}
 .readme img{max-width:100%}
 .source{color:var(--muted);font-size:.9rem;margin-top:2em}
-footer{color:var(--muted);font-size:.85rem;border-top:1px solid var(--edge);padding-top:16px;padding-bottom:32px}
+footer{background:var(--navy);color:rgba(255,255,255,.88);font-size:.88rem;padding:18px 0 28px}
+footer a{color:#ffa07a}
 """
 
 
