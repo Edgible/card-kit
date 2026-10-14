@@ -70,7 +70,7 @@ def labels(card_dir: Path) -> list[str]:
     every place on one machine, so the memory is theirs together, rounded up to a mem-<n>g
     label; a machine carries the label of every tier it meets, such as mem-2g,mem-4g,mem-8g on
     a 9 GB one. 1 GB or less needs none. A card whose images miss amd64 or arm64 needs the
-    other one, and gpu: required needs gpu-nvidia."""
+    other one, gpu: required needs gpu-nvidia, and a tcp or udp app needs tcp."""
     tc = test_card()
     places = tc.read_places(card_dir / "card.yml").values()
     need = ["self-hosted", "edgible-test"]
@@ -85,6 +85,10 @@ def labels(card_dir: Path) -> list[str]:
         need.append("X64")
     if any(p.get("gpu") == "required" for p in places):
         need.append("gpu-nvidia")
+    # A machine whose Edgible agent forwards tcp and udp apps to 127.0.0.1, where every card
+    # binds them, carries tcp. The Linux agent does not yet: it forwards to the host's address.
+    if any(a["protocol"] in ("tcp", "udp") for a in tc.read_apps(card_dir / "card.yml")):
+        need.append("tcp")
     return need
 
 
