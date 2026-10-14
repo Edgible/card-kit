@@ -7,6 +7,9 @@ Run it from the root of the cards repo. It writes one page per card (its README,
 apps, and latest test), one page per need in the skill's needs map (what people say, whether
 self-hosting suits it, how to publish it, and the cards for it, titled by the hosted
 products people leave for it), an index of each, and llms.txt, sitemap.xml, and robots.txt.
+The index has a search box and filters (category, type, a public page, ARM, memory, test
+result) that run in the browser; without JavaScript it is the plain list. A card's
+categories are the needs that name it in the needs map.
 
 The output is a plain folder with relative links, so the same build works at any address
 and under any path: GitHub Pages, an nginx container, or a bucket. --base-url is used only
@@ -99,6 +102,14 @@ def load_cards(root: Path) -> dict[str, dict]:
             "readme": readme.read_text() if readme.exists() else "",
         }
     return cards
+
+
+def memory_mb(v: object) -> float | None:
+    """A place's memory, such as "384 MB" or "2 GB", in MB; None when it is not given."""
+    m = re.fullmatch(r"\s*([\d.]+)\s*([MG])B?\s*", str(v or ""), re.I)
+    if not m:
+        return None
+    return float(m[1]) * (1024 if m[2].upper() == "G" else 1)
 
 
 def status_pill(st: dict | None, prefix: str = "") -> str:
@@ -196,8 +207,34 @@ class Site:
                         f'width="{size}" height="{size}" loading="lazy">')
         return f'<span class="icon placeholder" style="width:{size}px;height:{size}px" aria-hidden="true"></span>'
 
+    def filter_data(self, c: dict) -> str:
+        """The data the index's search and filters read from a tile: the words a person
+        might search for, the card's categories from the needs map, and what its machine
+        needs. Memory and ARM are left out when a place does not give them, so a filter
+        on them never promises what the card does not say."""
+        card, needs = c["card"], self.needs_of.get(c["name"], [])
+        apps = card.get("applications") or []
+        words = [c["name"], c["description"]]
+        words += [f'{a.get("name", "")} {a.get("what", "")}' for a in apps]
+        for n in needs:
+            words += [n["category"], *(n.get("replaces") or []), *(n.get("jobs") or [])]
+        places = list((card.get("places") or {}).values())
+        mems = [memory_mb((p or {}).get("memory")) for p in places]
+        attrs = {
+            "search": " ".join(str(w) for w in words).lower(),
+            "cats": " ".join(slug(n["category"]) for n in needs),
+            "type": "app" if c["type"] == "app" else "pattern",
+            "pass": "1" if (self.status.get(c["name"]) or {}).get("result") == "pass" else "",
+            "public": "1" if any("none" in (a.get("authModes") or []) for a in apps) else "",
+        }
+        if places and None not in mems:
+            attrs["mem"] = str(round(sum(mems)))
+        if places and all("arm64" in ((p or {}).get("arch") or []) for p in places):
+            attrs["arm"] = "1"
+        return "".join(f' data-{k}="{esc(v)}"' for k, v in attrs.items())
+
     def card_tile(self, c: dict, up: str) -> str:
-        return (f'<li class="tile"><a class="tile-head" href="{up}{esc(c["name"])}/">{self.icon(c, up, 40)}'
+        return (f'<li class="tile"{self.filter_data(c)}><a class="tile-head" href="{up}{esc(c["name"])}/">{self.icon(c, up, 40)}'
                 f'<strong>{esc(c["name"])}</strong></a>'
                 f'<span>{esc(c["description"])}</span>{status_pill(self.status.get(c["name"]))}</li>')
 
@@ -210,12 +247,15 @@ class Site:
 <p>Each card runs one self-hosted app, or wires several together, on a machine you control: at home, in the office, or a small cloud server. It records the images, ports, and who may reach each hostname, and leaves out anything that is yours, so you can run it as it is. Edgible publishes the apps, with hostnames, TLS, and sign-in.</p>
 <p class="stats">{len(apps)} app cards, {len(patterns)} pattern cards, {tested} passing their latest test, {len(self.needs)} needs mapped.</p>
 </section>
+{self.finder()}
 <h2 id="app-cards">App cards</h2>
 <p>One app each, ready on its own or as a building block. Every app card is tested end to end, and again when it changes or Edgible releases a new version.</p>
 <ul class="tiles">{"".join(self.card_tile(c, "") for c in apps)}</ul>
 <h2 id="pattern-cards">Pattern cards</h2>
 <p>Several apps wired together for a purpose, built from app cards.</p>
 <ul class="tiles">{"".join(self.card_tile(c, "") for c in patterns)}</ul>
+<p class="no-match" hidden>No card matches. Try fewer words, clear a filter, or <a href="needs/">start from a need</a>.</p>
+<script>{FINDER_JS}</script>
 <h2>Start from a need</h2>
 <p>What people want to self-host, whether it suits a machine of your own, and how to publish it safely. <a href="needs/">All {len(self.needs)} needs</a>.</p>
 {self.leaving_list("")}
@@ -225,6 +265,28 @@ class Site:
         self.page("", "Edgible cards: self-hosted apps, tested every week",
                   "Self-hosted apps you can run on a machine you control, each tested end to end on a real Edgible serving device.",
                   body)
+
+    def finder(self) -> str:
+        """Search and filters for the index. Hidden until the script shows them, so the
+        page without JavaScript is the plain list. Categories are the needs that name a
+        card, from the needs map, with how many cards each has."""
+        cats = sorted({n["category"] for n in self.needs if any(c in self.cards for c in n.get("cards") or [])},
+                      key=str.lower)
+        count = {cat: sum(1 for c in self.cards if cat in [n["category"] for n in self.needs_of.get(c, [])])
+                 for cat in cats}
+        options = "".join(f'<option value="{slug(cat)}">{esc(cat)} ({count[cat]})</option>' for cat in cats)
+        return f"""<form class="finder" role="search" hidden onsubmit="return false">
+<label class="find-q"><span class="sr-only">Search cards</span><input type="search" name="q" placeholder="Search: an app, a need, or a service you are leaving" autocomplete="off"></label>
+<div class="find-opts">
+<label><span class="sr-only">Category</span><select name="cat"><option value="">All categories</option>{options}</select></label>
+<label><span class="sr-only">Type</span><select name="type"><option value="">Apps and patterns</option><option value="app">App cards</option><option value="pattern">Pattern cards</option></select></label>
+<label class="chip"><input type="checkbox" name="public"> Public page</label>
+<label class="chip"><input type="checkbox" name="arm"> Runs on ARM</label>
+<label class="chip"><input type="checkbox" name="small"> Fits in 2 GB</label>
+<label class="chip"><input type="checkbox" name="pass"> Passing its test</label>
+</div>
+<p class="find-count" aria-live="polite"></p>
+</form>"""
 
     def leaving_list(self, up: str) -> str:
         """Hosted products people leave, each linked to the need that replaces it: the way
@@ -543,9 +605,60 @@ dt{font-weight:600;margin-top:10px}dd{margin:2px 0 0 0}
 .readme{border-top:1px solid var(--edge);margin-top:32px}
 .readme img{max-width:100%}
 .source{color:var(--muted);font-size:.9rem;margin-top:2em}
+.finder{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:14px 16px;margin:28px 0 0}
+.finder input[type=search],.finder select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--edge);border-radius:8px;padding:8px 12px}
+.finder input[type=search]{width:100%;font-size:1.05rem}
+.finder input[type=search]:focus,.finder select:focus{outline:2px solid var(--navy-mid);outline-offset:1px}
+.find-q{display:block}
+.find-opts{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin-top:10px}
+.find-opts label{min-width:0;max-width:100%}.find-opts select{max-width:100%}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--edge);border-radius:999px;padding:4px 12px;font-size:.92rem;cursor:pointer;user-select:none}
+.chip:has(input:checked){background:var(--navy-mid);border-color:var(--navy-mid);color:#fff}
+.chip input{accent-color:var(--link);margin:0}
+.find-count{margin:8px 0 0;color:var(--muted);font-size:.9rem}.find-count:empty{display:none}
+.no-match{color:var(--muted)}
+[hidden]{display:none!important}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 footer{background:var(--navy);color:rgba(255,255,255,.88);font-size:.88rem;padding:18px 0 28px}
 footer a{color:#ffa07a}
 """
+
+
+# The index's search and filters. Every word typed must appear in a card's search text;
+# each filter narrows further. The choices go in the address, so a filtered view can be
+# shared, and the cards keep their order.
+FINDER_JS = """(() => {
+const f = document.querySelector(".finder"); if (!f) return;
+const tiles = [...document.querySelectorAll(".tiles .tile[data-search]")];
+const total = tiles.length, none = document.querySelector(".no-match");
+const read = () => ({q: f.q.value.trim().toLowerCase(), cat: f.cat.value, type: f.type.value,
+  public: f.public.checked, arm: f.arm.checked, small: f.small.checked, pass: f.pass.checked});
+const fits = (d, s) => s.q.split(/\\s+/).every(w => d.search.includes(w))
+  && (!s.cat || d.cats.split(" ").includes(s.cat)) && (!s.type || d.type === s.type)
+  && (!s.public || d.public) && (!s.arm || d.arm) && (!s.pass || d.pass)
+  && (!s.small || (d.mem && +d.mem <= 2048));
+function apply(push) {
+  const s = read(); let shown = 0;
+  for (const t of tiles) { const ok = !!fits(t.dataset, s); t.hidden = !ok; shown += ok; }
+  for (const id of ["app-cards", "pattern-cards"]) {
+    const h = document.getElementById(id), p = h.nextElementSibling, ul = p.nextElementSibling;
+    const any = [...ul.children].some(t => !t.hidden); h.hidden = p.hidden = ul.hidden = !any;
+  }
+  none.hidden = shown > 0;
+  const on = s.q || s.cat || s.type || s.public || s.arm || s.small || s.pass;
+  f.querySelector(".find-count").textContent = on ? `${shown} of ${total} cards` : "";
+  if (push) {
+    const u = new URLSearchParams();
+    for (const [k, v] of Object.entries(s)) if (v) u.set(k, v === true ? "1" : v);
+    history.replaceState(null, "", (u.toString() ? "?" + u : location.pathname) + location.hash);
+  }
+}
+const u = new URLSearchParams(location.search);
+f.q.value = u.get("q") || ""; f.cat.value = u.get("cat") || ""; f.type.value = u.get("type") || "";
+for (const k of ["public", "arm", "small", "pass"]) f[k].checked = u.get(k) === "1";
+f.addEventListener("input", () => apply(true)); f.addEventListener("change", () => apply(true));
+f.hidden = false; apply(false);
+})();"""
 
 
 def main(argv: list[str]) -> int:
