@@ -30,6 +30,11 @@ those lines are printed:
 
     python3 check-env.py website --commands > fix.sh
 
+A card with a native place (native: macos) runs its app on the machine itself, with
+install.sh, not in Docker. For it, the check looks at the machine instead: its OS and
+CPU, memory and free disk, each app's port, and whether the service install.sh starts
+(SERVICE in card.env) is already this card's or someone else's.
+
 Only the standard library. Exit 0 when nothing conflicts, 1 when something
 does, 2 when the check cannot run.
 """
@@ -403,7 +408,7 @@ def read_places(card_yml: Path) -> dict[str, dict]:
         if m:
             current = places.setdefault(m.group(1), {})
             continue
-        m = re.match(r"^    (memory|disk|arch|gpu|runs):\s*(.+?)\s*$", line)
+        m = re.match(r"^    (memory|disk|arch|gpu|runs|native):\s*(.+?)\s*$", line)
         if m and current is not None:
             value = m.group(2)
             listed = m.group(1) in ("arch", "runs")
@@ -610,6 +615,130 @@ def notes(
         report.ok("nothing to note")
 
 
+def edgible_section(report: Report, card: Path, env: dict[str, str], apps: list[dict], devices: list | None,
+                    existing_apps: dict, edgible_note: str, device_names: str) -> None:
+    # Edgible: devices and application names.
+    report.section("Edgible")
+    if devices is None:
+        report.skip(edgible_note)
+    else:
+        for key, value in env.items():
+            if not DEVICE_VAR.match(key) or not value:
+                continue
+            matches = [d for d in devices if d["name"] == value]
+            if len(matches) == 1:
+                report.ok(f"{key}={value} is device {matches[0]['id']} ({matches[0]['status']})")
+            elif not matches:
+                report.conflict(
+                    f"{key}={value} matches no device",
+                    f"use one of: {device_names}",
+                )
+            else:
+                report.conflict(
+                    f"{key}={value} matches {len(matches)} devices",
+                    "rename one with `edgible device` so each name is unique",
+                )
+        for app in apps:
+            other = existing_apps.get(app["name"])
+            if other is None:
+                report.ok(f"app {app['name']} is free")
+                continue
+            key = device_var(app.get("place", ""), env)
+            device = env.get(key, "") if key else ""
+            on = ", ".join(d["name"] for d in other.get("devices", [])) or "no device"
+            if device and device in on.split(", "):
+                report.warn(
+                    f"app {app['name']} already exists on {device} ({other['status']}, "
+                    f"port {other.get('port')})",
+                    "if this card published it before, skip it in the Publish step",
+                    Cmd("to publish it again, delete it first",
+                        f"edgible app delete {shlex.quote(app['name'])}", safe=False),
+                )
+            else:
+                report.conflict(
+                    f"app {app['name']} already exists on {on} ({other['status']})",
+                    Cmd("if it is unused", f"edgible app delete {shlex.quote(app['name'])}", safe=False),
+                    f"or publish this one under another name, such as --name {card.name}-{app['name']}",
+                )
+
+
+
+def native_check(report: Report, card: Path, card_yml: Path, env_file: Path, env: dict[str, str],
+                 apps: list[dict]) -> None:
+    """The checks for a native card: the machine itself instead of Docker."""
+    import platform
+    places = read_places(card_yml)
+    os_name = {"Darwin": "macos", "Linux": "linux"}.get(platform.system(), platform.system().lower())
+    arch = ARCH.get(platform.machine(), platform.machine())
+    report.section("Machine")
+    for name, spec in places.items():
+        want = spec.get("native")
+        if want and want != os_name:
+            report.conflict(f"place {name} runs natively on {want}; this machine is {os_name}",
+                            f"run it on a {want} device")
+        elif want:
+            report.ok(f"place {name} runs natively on {want}, and this machine is {os_name}")
+        archs = spec.get("arch")
+        if archs and arch not in archs:
+            report.conflict(f"cpu: place {name} is for {', '.join(archs)}; this machine is {arch}",
+                            "run it on a device with one of those")
+        elif archs:
+            report.ok(f"cpu: this machine is {arch}")
+        if spec.get("memory"):
+            total = float(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")) if hasattr(os, "sysconf") else 0.0
+            if os_name == "macos":
+                total = float(run(["sysctl", "-n", "hw.memsize"]).stdout.strip() or 0)
+            need = size_bytes(spec["memory"])
+            line = f"memory: place {name} wants {human(need)}; this machine has {human(total)}"
+            report.conflict(line, "run it on a device with more memory") if total and total < need else report.ok(line)
+        if spec.get("disk"):
+            need, free = size_bytes(spec["disk"]), float(shutil.disk_usage(card).free)
+            line = f"disk: place {name} wants {human(need)}; {human(free)} free here"
+            report.conflict(line, "free some space, or run it on another device") if free < need else report.ok(line)
+
+    # The service install.sh starts. This card's own, already running, is no conflict.
+    report.section("Service")
+    service = env.get("SERVICE", "")
+    ours = False
+    if not service:
+        report.conflict(f"SERVICE is empty in {env_file.name}", "set it to the service name its comment gives")
+    elif os_name == "macos":
+        plist = Path.home() / "Library" / "LaunchAgents" / f"{service}.plist"
+        loaded = run(["launchctl", "print", f"gui/{os.getuid()}/{service}"]).returncode == 0
+        if not plist.exists() and not loaded:
+            report.ok(f"{service} is free")
+        elif plist.exists() and str(card) in plist.read_text():
+            ours = True
+            report.ok(f"{service} is this card, already installed")
+        else:
+            report.conflict(
+                f"{service} is already a service on this machine, from another copy or another program",
+                f"use another SERVICE in {env_file.name}, such as {service}-2",
+                "or remove that copy with its own uninstall.sh")
+
+    report.section("Host ports")
+    seen: set[str] = set()
+    for app in apps:
+        var = app["name"].upper().replace("-", "_") + "_PORT"
+        if var in seen or var not in env:
+            continue
+        seen.add(var)
+        port = int(env[var])
+        if port_free("127.0.0.1", port):
+            report.ok(f"{var}={port} is free")
+            continue
+        who = listener(port) or "another program"
+        pids = run(["lsof", "-t", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN"]).stdout.split()
+        commands = "".join(run(["ps", "-o", "command=", "-p", pid]).stdout for pid in pids)
+        if ours and str(card) in commands:
+            report.ok(f"{var}={port} is this card, already listening")
+            continue
+        free = next_free_port(port, set(), "127.0.0.1")
+        report.conflict(f"{var}={port} is in use by {who}",
+                        Edit(var, f"{port} is taken; {free} is free", value=str(free)),
+                        "or stop the program that listens there")
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("card", type=Path, help="the card directory, such as website")
@@ -638,6 +767,8 @@ def main(argv: list[str]) -> int:
         if not path.is_file():
             print(f"{path} not found", file=sys.stderr)
             return 2
+    if any(spec.get("native") for spec in read_places(card_yml).values()):
+        return native_main(args, argv, card, card_yml, env_file)
     if args.file:
         files = [(card / name).resolve() for name in args.file]
     else:
@@ -895,49 +1026,7 @@ def main(argv: list[str]) -> int:
     if not found:
         report.ok("no named volumes")
 
-    # Edgible: devices and application names.
-    report.section("Edgible")
-    if devices is None:
-        report.skip(edgible_note)
-    else:
-        for key, value in env.items():
-            if not DEVICE_VAR.match(key) or not value:
-                continue
-            matches = [d for d in devices if d["name"] == value]
-            if len(matches) == 1:
-                report.ok(f"{key}={value} is device {matches[0]['id']} ({matches[0]['status']})")
-            elif not matches:
-                report.conflict(
-                    f"{key}={value} matches no device",
-                    f"use one of: {device_names}",
-                )
-            else:
-                report.conflict(
-                    f"{key}={value} matches {len(matches)} devices",
-                    "rename one with `edgible device` so each name is unique",
-                )
-        for app in apps:
-            other = existing_apps.get(app["name"])
-            if other is None:
-                report.ok(f"app {app['name']} is free")
-                continue
-            key = device_var(app.get("place", ""), env)
-            device = env.get(key, "") if key else ""
-            on = ", ".join(d["name"] for d in other.get("devices", [])) or "no device"
-            if device and device in on.split(", "):
-                report.warn(
-                    f"app {app['name']} already exists on {device} ({other['status']}, "
-                    f"port {other.get('port')})",
-                    "if this card published it before, skip it in the Publish step",
-                    Cmd("to publish it again, delete it first",
-                        f"edgible app delete {shlex.quote(app['name'])}", safe=False),
-                )
-            else:
-                report.conflict(
-                    f"app {app['name']} already exists on {on} ({other['status']})",
-                    Cmd("if it is unused", f"edgible app delete {shlex.quote(app['name'])}", safe=False),
-                    f"or publish this one under another name, such as --name {card.name}-{app['name']}",
-                )
+    edgible_section(report, card, env, apps, devices, existing_apps, edgible_note, device_names)
 
     sizing(report, card_yml, files, env_file, env, args.project_prefix or "")
     notes(report, files, env_file, env, containers, args.project_prefix)
@@ -956,6 +1045,39 @@ def main(argv: list[str]) -> int:
         else:
             print(f"no conflicts, {report.warnings} warning(s). Start the containers.")
         if has_remedy:
+            print("\nTo apply the remedies, paste these lines into a shell:\n")
+            print("\n".join(report.commands(env_file, rerun)))
+    return 1 if report.conflicts else 0
+
+
+def native_main(args: argparse.Namespace, argv: list[str], card: Path, card_yml: Path, env_file: Path) -> int:
+    env = read_env(env_file)
+    apps = read_apps(card_yml)
+    report = Report(quiet=args.commands)
+    report.say(f"card {card.name} (native), settings {env_file}")
+    report.section("card.env")
+    for var, shell in generators(env_file).items():
+        if var in env and not env[var]:
+            report.conflict(f"{var} is empty in {env_file.name}, and its comment says how to make it",
+                            Edit(var, "empty; a new value, made the way its comment says", shell=shell))
+    devices, existing_apps, edgible_note = edgible_lists()
+    device_names = ", ".join(sorted(d["name"] for d in devices or [])) or "none"
+    for key, value in env.items():
+        if DEVICE_VAR.match(key) and not value:
+            report.conflict(f"{key} is empty", f"set {key} to one of: {device_names}"
+                            if devices is not None else f"set {key} to a name that `edgible device list` prints")
+    if not report.conflicts:
+        report.ok("every value is set")
+    native_check(report, card, card_yml, env_file, env, apps)
+    edgible_section(report, card, env, apps, devices, existing_apps, edgible_note, device_names)
+    rerun = shlex.join(["python3", sys.argv[0], *[a for a in argv if a != "--commands"]])
+    if args.commands:
+        print("\n".join(report.commands(env_file, rerun)))
+    else:
+        print()
+        print(f"{report.conflicts} conflict(s), {report.warnings} warning(s). Fix the conflicts, then run this again."
+              if report.conflicts else f"no conflicts, {report.warnings} warning(s). Run install.sh.")
+        if any(isinstance(r, (Edit, Cmd)) for _, remedies in report.findings for r in remedies):
             print("\nTo apply the remedies, paste these lines into a shell:\n")
             print("\n".join(report.commands(env_file, rerun)))
     return 1 if report.conflicts else 0

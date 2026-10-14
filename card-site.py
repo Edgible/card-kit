@@ -49,6 +49,7 @@ AWESOME = "https://awesome-selfhosted.net/tags/{slug}.html"
 # than it helps.
 STARS_SHOWN_FROM = 25
 
+NATIVE_WORDS = {"macos": "macOS"}
 AUTH_WORDS = {"none": "open to anyone", "org": "org login", "api-key": "API key"}
 FIT_WORDS = {
     "good": "Good fit",
@@ -351,7 +352,8 @@ class Site:
             for a in apps)
         places = "".join(
             f'<tr><td><code>{esc(p)}</code></td><td>{esc(v.get("memory", ""))}</td><td>{esc(v.get("disk", ""))}</td>'
-            f'<td>{esc(", ".join(v.get("arch") or []))}</td><td>{esc(v.get("gpu", "none"))}</td></tr>'
+            f'<td>{esc(", ".join(v.get("arch") or []))}</td>'
+            f'<td>{esc("Apple GPU" if v.get("native") == "macos" else v.get("gpu", "none"))}</td></tr>'
             for p, v in (card.get("places") or {}).items())
         needs = self.needs_of.get(name, [])
         needs_html = ""
@@ -370,6 +372,9 @@ class Site:
             picture = (f'<picture class="card-image">{dark}<img src="card-light.svg" '
                        f'alt="The apps, ports, auth modes, and places in the {esc(name)} card"></picture>')
         kind = "App card" if c["type"] == "app" else "Pattern card"
+        native = next((p["native"] for p in (card.get("places") or {}).values() if p.get("native")), "")
+        if native:
+            kind += f", runs natively on {NATIVE_WORDS.get(native, native)}"
         body = f"""<p class="crumbs"><a href="../">Cards</a> / {esc(name)}</p>
 <h1 class="with-icon">{self.icon(c, "../", 56)}<span>{esc(name)}</span></h1>
 <p class="lead">{esc(c["description"])}</p>

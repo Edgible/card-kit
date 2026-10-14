@@ -32,6 +32,12 @@ size of its images, and the size of its data at the end. It writes test.yml (unl
 nothing material changed since the last one), and prints a suggested places: section,
 the measurement plus a margin. --write-places writes that into card.yml.
 
+A card with a native place (native: macos) runs install.sh for Start and uninstall.sh for
+Tear down, with the copy's card.env exported and SERVICE set to the test's own service name,
+so the test never touches a copy of the card the machine already runs. It measures the peak
+memory of the processes run from the card's directory, the installed release as images, and
+what the card's directory holds after as data.
+
 DNS: Edgible's zone caches "does not exist" for 15 minutes, so a hostname looked up too
 early stays unresolvable. Verify asks Edgible's own nameservers and connects by address.
 
@@ -263,6 +269,32 @@ class Sampler:
             self.stop.wait(2)
 
 
+class NativeSampler:
+    """Peak memory of the processes a native card runs: those started from its directory."""
+
+    def __init__(self, card_dir: Path):
+        self.card_dir, self.peak = str(card_dir), 0.0
+        self.stop = threading.Event()
+        self.thread = threading.Thread(target=self.run, daemon=True)
+
+    def run(self) -> None:
+        while not self.stop.is_set():
+            total = 0.0
+            for line in sh("ps -axo rss=,command=", check=False).stdout.splitlines():
+                rss, _, command = line.strip().partition(" ")
+                if self.card_dir in command and rss.isdigit():
+                    total += float(rss) * 1024
+            self.peak = max(self.peak, total)
+            self.stop.wait(2)
+
+
+def dir_bytes(path: Path) -> float:
+    if not path.exists():
+        return 0.0
+    du = sh(f"du -sk '{path}'", check=False).stdout.split()
+    return float(du[0]) * 1024 if du else 0.0
+
+
 def volume_bytes(project: str) -> float:
     total = 0.0
     for volume in sh(f"docker volume ls -q --filter label=com.docker.compose.project={project}",
@@ -296,7 +328,8 @@ def suggest(memory: float, disk: float, archs: set[str], gpu: str) -> dict:
 def places_yaml(places: dict[str, dict]) -> str:
     lines = ["places:"]
     for name, p in places.items():
-        lines += [f"  {name}:"] + ([f"    runs: [{', '.join(p['runs'])}]"] if p.get("runs") else []) + [
+        lines += [f"  {name}:"] + ([f"    runs: [{', '.join(p['runs'])}]"] if p.get("runs") else []) + \
+                 ([f"    native: {p['native']}"] if p.get("native") else []) + [
                   f"    memory: {p['memory']}", f"    disk: {p['disk']}",
                   f"    arch: [{', '.join(p['arch'])}]", f"    gpu: {p['gpu']}"]
     return "\n".join(lines) + "\n"
@@ -383,6 +416,11 @@ def main(argv: list[str]) -> int:
     apps = read_apps(card / "card.yml")
     composes = sorted(card.glob("*compose*.yml"))
     places = read_places(card / "card.yml")
+    native = next((s["native"] for s in places.values() if s.get("native")), "")
+    if native:
+        # The test's own service, beside any copy of the card this machine already runs.
+        set_env(env_file, "SERVICE", f"org.edgible.cardtest-{src.name}")
+    run_env = f"cd {work} && set -a && . {env_file} && set +a"
     app_places = {a["place"] for a in apps}
     # A place no app uses runs services that connect out, often to an app this card
     # publishes, so its Compose files start after Publish.
@@ -400,8 +438,8 @@ def main(argv: list[str]) -> int:
             s = s.replace(secret, "<secret>")
         return s
     steps: dict = {"check-env": "fail", "start": "skip", "publish": "skip", "verify": {}, "teardown": "skip"}
-    notes, published, started_compose = [], [], False
-    sampler = Sampler(list(projects.values()))
+    notes, published, started_compose, installed = [], [], False, False
+    sampler = NativeSampler(card) if native else Sampler(list(projects.values()))
     data: dict[Path, float] = {}
 
     try:
@@ -461,17 +499,22 @@ def main(argv: list[str]) -> int:
 
         sampler.thread.start()
         t = time.time()
-        steps["start"], started_compose = "fail", True
-        for f in first:
-            sh(dc(f, "up -d --wait --wait-timeout 1200"), timeout=2400)
-        print(f"start: {', '.join(f.name for f in first)} up ({int(time.time() - t)}s)")
+        if native:
+            steps["start"], installed = "fail", True
+            out = sh(f"{run_env} && sh {card / 'install.sh'}", timeout=1800).stdout.strip()
+            print(f"start: install.sh ({int(time.time() - t)}s) {hide(out.splitlines()[-1] if out else '')}")
+        else:
+            steps["start"], started_compose = "fail", True
+            for f in first:
+                sh(dc(f, "up -d --wait --wait-timeout 1200"), timeout=2400)
+            print(f"start: {', '.join(f.name for f in first)} up ({int(time.time() - t)}s)")
 
         # The card's own prepare.sh, the one its README runs, unless --prepare replaces it.
         prepare_cmd = args.prepare or (f"sh {card / 'prepare.sh'}" if (card / "prepare.sh").is_file() else "")
         if prepare_cmd:
-            prepare = sh(f"cd {work} && set -a && . {env_file} && set +a && "
-                         f"export COMPOSE='docker compose -p {projects[first[0]]} --env-file {env_file} -f {first[0]}' "
-                         f"&& {prepare_cmd}", check=False, timeout=900)
+            compose = (f"export COMPOSE='docker compose -p {projects[first[0]]} --env-file {env_file} -f {first[0]}' && "
+                       if first else "")
+            prepare = sh(f"{run_env} && {compose}{prepare_cmd}", check=False, timeout=900)
             print("prepare:", "ok" if prepare.returncode == 0 else "FAILED",
                   hide((prepare.stdout + prepare.stderr).strip()[-300:]))
             if prepare.returncode != 0:
@@ -551,6 +594,8 @@ def main(argv: list[str]) -> int:
         sampler.stop.set()
         if started_compose:
             data = {f: volume_bytes(projects[f]) for f in composes}
+        installed_bytes = dir_bytes(card / ".native") if installed else 0.0
+        native_data = max(0.0, dir_bytes(card) - installed_bytes) if installed else 0.0
         if not args.keep:
             ok = True
             for _, name in published:
@@ -558,7 +603,12 @@ def main(argv: list[str]) -> int:
             if started_compose:
                 for f in composes:
                     ok &= sh(dc(f, "down --volumes"), check=False).returncode == 0
-            if started_compose or published:
+            if installed:
+                ok &= sh(f"{run_env} && sh {card / 'uninstall.sh'}", check=False).returncode == 0
+                # Nothing of the test's service may stay behind.
+                service = env_values(env_file).get("SERVICE", "")
+                ok &= not (Path.home() / "Library" / "LaunchAgents" / f"{service}.plist").exists()
+            if started_compose or published or installed:
                 steps["teardown"] = "pass" if ok else "fail"
             print(f"teardown: {steps['teardown']}")
 
@@ -581,6 +631,10 @@ def main(argv: list[str]) -> int:
                                         check=False).stdout.strip() or 0)
             archs = image_archs(image)
             entry["archs"] = archs if entry["archs"] is None else entry["archs"] & archs
+    if installed:
+        images = sorted({a["from"] for a in apps})
+        per_place[apps[0]["place"]] = {"memory": sampler.peak, "images": installed_bytes, "data": native_data,
+                                       "archs": {ARCH.get(platform.machine(), platform.machine())}}
     for app in apps:
         steps["verify"].setdefault(app["name"], "skip")
     core = [steps[k] for k in ("check-env", "start", "publish", "teardown")]
@@ -589,20 +643,22 @@ def main(argv: list[str]) -> int:
               and "pass" in steps["verify"].values() else "fail")
 
     docker_version = sh("docker version --format '{{.Server.Version}}'", check=False).stdout.strip()
+    runtime = (f"{native} {platform.mac_ver()[0] or platform.release()}, native" if native
+               else f"docker {docker_version}")
     lines = [
         f"tested: {date.today()}", f"result: {result}",
         # Quoted: a short commit id can be all digits, which YAML would read as a number.
         f"card-kit: \"{sh(f'git -C {HERE} rev-parse --short HEAD', check=False).stdout.strip() or 'unknown'}\"",
         f"edgible-cli: {sh('edgible --version', check=False).stdout.strip()}",
         f"files: {files_hash(src)}",
-        f"machine: {platform.system().lower()}/{ARCH.get(platform.machine(), platform.machine())}, docker {docker_version}",
+        f"machine: {platform.system().lower()}/{ARCH.get(platform.machine(), platform.machine())}, {runtime}",
         "images:", *[f"  - {i}" for i in sorted(set(images))],
         "steps:", f"  check-env: {steps['check-env']}", f"  start: {steps['start']}",
         f"  publish: {steps['publish']}", "  verify:", *[f"    {k}: {v}" for k, v in steps["verify"].items()],
         *(["  checks:", *[f"    {k}: {v}" for k, v in steps["checks"].items()]] if steps.get("checks") else []),
         f"  teardown: {steps['teardown']}",
     ]
-    if started_compose:
+    if started_compose or installed:
         lines.append("measured:")
         for place, m in per_place.items():
             lines += [f"  {place}:", f"    memory: {human(m['memory'])}", f"    images: {human(m['images'])}",
@@ -618,8 +674,9 @@ def main(argv: list[str]) -> int:
         target.write_text(new)
         print(f"\nresult: {result}. Wrote {target}.")
 
-    if started_compose:
+    if started_compose or installed:
         suggestion = {p: {**({"runs": places[p]["runs"]} if places.get(p, {}).get("runs") else {}),
+                          **({"native": native} if native else {}),
                           **suggest(m["memory"], m["images"] + m["data"], m["archs"] or set(), args.gpu)}
                       for p, m in per_place.items()}
         print("\nsuggested " + places_yaml(suggestion), end="")

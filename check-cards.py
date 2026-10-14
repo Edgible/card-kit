@@ -21,6 +21,15 @@ A card of metadata.type app is one app that other cards are built from, so it al
 - name every service and volume <card> or <card>-<something>, and set no container_name,
   so two app cards drop into one Compose file without a clash.
 
+A card with a native place (native: macos) runs its app on the machine itself, not in
+Docker, so it has install.sh and uninstall.sh next to card.yml and no Compose file:
+- install.sh pins the release (a VERSION= line with a version number) and checks its
+  SHA-256 before installing, and reads each app's <APP>_PORT;
+- card.env has SERVICE, the name of the service install.sh starts, so a test can run
+  its own copy beside a person's;
+- uninstall.sh removes nothing outside the card's directory by path: no rm of an
+  absolute path, ~ or $HOME.
+
 --before-test leaves out the test.yml rule, for a card about to be tested for the
 first time; test-card writes test.yml.
 
@@ -98,6 +107,9 @@ def convention_errors(card_dir: Path, card: dict) -> list[str]:
         return [f"{env_path.name} is missing"]
     env = read_env(env_path)
     composes = {f.name: f.read_text() for f in sorted(card_dir.glob("*compose*.yml"))}
+    native = any(spec.get("native") for spec in (card.get("places") or {}).values())
+    if native:
+        return native_errors(card_dir, card, env, composes)
     # Publish reads card.env in the shell (. card.env), so a value with a space needs quotes.
     for number, line in enumerate(env_path.read_text().splitlines(), 1):
         if "=" in line and not line.lstrip().startswith("#"):
@@ -145,6 +157,46 @@ def convention_errors(card_dir: Path, card: dict) -> list[str]:
 
 
 NO_TEST = "an app card must have test.yml: run test-card"
+
+
+def native_errors(card_dir: Path, card: dict, env: dict[str, str], composes: dict[str, str]) -> list[str]:
+    """The rules for a card whose place runs natively: see the module's docstring."""
+    errors = []
+    places = card.get("places") or {}
+    install, uninstall = card_dir / "install.sh", card_dir / "uninstall.sh"
+    if composes:
+        errors.append(f"a native card runs no Compose file, but has {', '.join(composes)}")
+    if not install.is_file() or not uninstall.is_file():
+        errors.append("a native card has install.sh and uninstall.sh next to card.yml")
+        return errors
+    script = install.read_text()
+    if not re.search(r"^VERSION=[\"']?v?\d", script, re.M):
+        errors.append("install.sh pins its release with a VERSION= line, such as VERSION=0.40.4")
+    if not re.search(r"sha256|shasum", script):
+        errors.append("install.sh checks the release's SHA-256 before it installs it")
+    if not env.get("SERVICE"):
+        errors.append("card.env has no SERVICE, the name of the service install.sh starts")
+    owners: dict[tuple, str] = {}
+    for app in card["applications"]:
+        owner = owners.setdefault((app["port"], app["place"], app["from"]), app["name"])
+        var = env_name(owner) + "_PORT"
+        if env.get(var) != str(app["port"]):
+            errors.append(f"app {app['name']}: card.env has no {var}={app['port']}")
+        if "$" + var not in script and "${" + var not in script:
+            errors.append(f"app {app['name']}: install.sh does not read {var}")
+        if not places.get(app["place"], {}).get("native"):
+            errors.append(f"app {app['name']}: place {app['place']} is not native, and a card is native or Compose, not both")
+    if len(places) == 1 and "DEVICE" not in env:
+        errors.append("card.env has no DEVICE, the serving device")
+    for number, line in enumerate(uninstall.read_text().splitlines(), 1):
+        if re.search(r"\brm\b[^#\n]*\s(/|~|\"?\$HOME)", line):
+            errors.append(f"uninstall.sh line {number} removes a path outside the card's directory")
+    if card["metadata"].get("type") == "app":
+        if len(places) != 1:
+            errors.append("an app card has one place")
+        if not (card_dir / "test.yml").is_file():
+            errors.append(NO_TEST)
+    return errors
 
 
 def app_errors(card_dir: Path, card: dict, composes: dict[str, str]) -> list[str]:
@@ -290,6 +342,9 @@ def main(argv: list[str]) -> int:
             errors = convention_errors(path.parent, card) + test_errors(path.parent, card, test_validator)
             if before_test:
                 errors = [e for e in errors if e != NO_TEST]
+            if untrusted and any(s.get("native") for s in (card.get("places") or {}).values()):
+                errors.append("a native card installs software on the machine itself, so it is never "
+                              "made or run unreviewed")
             if untrusted:
                 composes = {f.name: f.read_text() for f in sorted(path.parent.glob("*compose*.yml"))}
                 errors += untrusted_errors(path.parent, composes)

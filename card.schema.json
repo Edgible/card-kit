@@ -91,7 +91,7 @@
         "from": {
           "type": "string",
           "minLength": 1,
-          "description": "Image name. An existing-app export does not record it. Read it from docker ps by matching the port. No device and no organization."
+          "description": "Image name, or for an app in a native place, the release it installs, such as https://github.com/ollama/ollama/releases/tag/v0.40.4. An existing-app export does not record it. Read it from docker ps by matching the port. No device and no organization."
         },
         "database": {
           "type": "string",
@@ -211,7 +211,19 @@
             "pattern": "^[A-Za-z0-9._-]*compose[A-Za-z0-9._-]*\\.ya?ml$"
           },
           "description": "The Compose files this place runs. Required for a place no app uses: one that runs only services that connect out, such as a CI runner or a backup job. Such a place starts after Publish."
+        },
+        "native": {
+          "enum": [
+            "macos"
+          ],
+          "description": "The place runs its app natively on this OS, not in Docker: install.sh installs a pinned release and starts it as a service, uninstall.sh removes everything it installed. For an app that needs the machine itself, such as Ollama on a Mac's GPU, which Docker on macOS cannot reach. A native place has no runs:."
         }
+      },
+      "not": {
+        "required": [
+          "native",
+          "runs"
+        ]
       }
     },
     "size": {
