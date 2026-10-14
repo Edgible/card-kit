@@ -45,6 +45,9 @@ ICONS = ("icon.svg", "icon.png")
 REPO_URL = "https://github.com/edgible-org/cards"
 SKILL_URL = "https://github.com/edgible-org/card-kit/tree/main/skills/edgible-cards"
 AWESOME = "https://awesome-selfhosted.net/tags/{slug}.html"
+# The star count shows from this many on; below it, a small number puts people off more
+# than it helps.
+STARS_SHOWN_FROM = 25
 
 AUTH_WORDS = {"none": "open to anyone", "org": "org login", "api-key": "API key"}
 FIT_WORDS = {
@@ -133,10 +136,11 @@ def status_text(st: dict | None) -> str:
 
 class Site:
     def __init__(self, root: Path, out: Path, cards: dict, needs: list, status: dict,
-                 base_url: str, commit: str):
+                 base_url: str, commit: str, stars: int = 0):
         self.root, self.out, self.cards, self.needs = root, out, cards, needs
         self.status, self.base = status, base_url.rstrip("/")
         self.commit = commit
+        self.stars = f" · {stars:,}" if stars >= STARS_SHOWN_FROM else ""
         self.built = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         self.pages: list[str] = []
         # Which needs name each card, for the card pages.
@@ -179,7 +183,7 @@ class Site:
 <body>
 <header class="top"><div class="wrap">
 <a class="brand" href="{up}"><img src="{up}assets/images/edgible-logo-white.png" alt="Edgible" width="107" height="24"><span>Cards</span></a>
-<nav><a href="{up}about/">About</a><a href="{up}#app-cards">Apps</a><a href="{up}#pattern-cards">Patterns</a><a href="{up}needs/">Needs</a><a class="star" href="{REPO_URL}" title="Star edgible-org/cards on GitHub, so others find it">&#9733; Star on GitHub</a></nav>
+<nav><a href="{up}about/">About</a><a href="{up}#app-cards">Apps</a><a href="{up}#pattern-cards">Patterns</a><a href="{up}needs/">Needs</a><a class="star" href="{REPO_URL}" title="Star edgible-org/cards on GitHub, so others find it">&#9733; Star on GitHub{self.stars}</a></nav>
 </div></header>
 <main class="wrap">
 {body}
@@ -719,6 +723,8 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--needs", type=Path, default=NEEDS_MAP, help="the needs map; default: the one in this kit")
     ap.add_argument("--base-url", default="", help="the site's address, such as https://cards.edgible.org")
     ap.add_argument("--commit", default="", help="the cards commit being built, shown in the footer")
+    ap.add_argument("--stars", type=int, default=0,
+                    help=f"the cards repo's star count, shown on the Star button from {STARS_SHOWN_FROM} on")
     args = ap.parse_args(argv)
 
     root = Path.cwd()
@@ -731,7 +737,7 @@ def main(argv: list[str]) -> int:
     if args.status and not args.status.exists():
         print(f"{args.status} not found: every card shows as not tested yet", file=sys.stderr)
 
-    Site(root, args.out, cards, needs, status, args.base_url, args.commit).build()
+    Site(root, args.out, cards, needs, status, args.base_url, args.commit, args.stars).build()
     print(f"wrote {args.out}: {len(cards)} cards, {len(needs)} needs")
     return 0
 

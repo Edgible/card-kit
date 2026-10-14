@@ -1,0 +1,38 @@
+# Rebuild the catalog site in edgible-org/cards when something here changes what it shows:
+# card-site and its assets, the needs map (the need pages), or the image the tools run in.
+# Without this, those changes wait for the next push to cards, regression, or the daily build.
+#
+# Starting a workflow in another repo needs a token: CARDS_SITE_TOKEN, a fine-grained token
+# with access to edgible-org/cards only and Actions: Read and write. Without it, this job says
+# so and passes.
+
+name: site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - card-site.py
+      - site/**
+      - skills/edgible-cards/needs-map.yaml
+      - Dockerfile
+      - run
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rebuild-cards-site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start the site build in edgible-org/cards
+        env:
+          GH_TOKEN: ${{ secrets.CARDS_SITE_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::CARDS_SITE_TOKEN is not set, so the cards site is not rebuilt; it picks this up at its next build."
+            exit 0
+          fi
+          gh workflow run site.yml -R edgible-org/cards --ref main
+          echo "Started: https://github.com/edgible-org/cards/actions/workflows/site.yml"
