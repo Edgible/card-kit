@@ -52,8 +52,9 @@ def categories() -> set[str]:
 
 def cards(repo: str) -> set[str]:
     """The top-level directories of an Edgible repo: each one with a card.yml is a card."""
-    items = json.loads(get(f"https://api.github.com/repos/Edgible/{repo}/contents"))
-    return {i["name"] for i in items if i["type"] == "dir" and not i["name"].startswith(".")}
+    tree = json.loads(get(f"https://api.github.com/repos/edgible-org/{repo}/git/trees/main?recursive=1"))
+    return {path.split("/")[0] for path in (i["path"] for i in tree.get("tree", []))
+            if path.count("/") == 1 and path.endswith("/card.yml") and not path.startswith(".")}
 
 
 def main() -> int:

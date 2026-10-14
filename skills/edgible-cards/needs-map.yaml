@@ -291,7 +291,7 @@
   permissions: "knowledge bases and groups decide which documents each person's questions can draw on; with need-to-know rules, such as a law firm's ethical walls, one shared knowledge base is wrong"
   builders: "a private model and document chat for a prototype, so early users' data does not go to an outside AI service"
   machine: much memory; a GPU or Apple Silicon for anything but small models
-  cards: [assistant, litellm]
+  cards: [assistant, litellm, ollama-mac]
   find: "awesome-selfhosted lists only a few; also GitHub repositories tagged local-llm or llm-inference, most starred and recently updated"
   ask: ["what hardware do you have?", "chat, documents, or an API for your own apps?"]
 
