@@ -308,6 +308,16 @@ class Site:
         if not f.exists():
             return
         text = f.read_text()
+
+        # A picture in the repo, such as ![The cards loop](about/loop.svg), is drawn into the
+        # page itself, so it takes the site's fonts and dark mode; GitHub shows it as an image.
+        def inline(m: re.Match) -> str:
+            svg = self.root / m.group(2)
+            if svg.suffix != ".svg" or not svg.is_file() or not svg.resolve().is_relative_to(self.root.resolve()):
+                return m.group(0)
+            body = "\n".join(line for line in svg.read_text().splitlines() if line.strip())
+            return f'<figure class="art">{body}</figure>'
+        text = re.sub(r"^!\[([^\]]*)\]\(([^)\s]+)\)\s*$", inline, text, flags=re.M)
         m = re.match(r"\A# ([^\n]*)\n", text)
         title = m.group(1) if m else "About cards"
         body = f"""<p class="crumbs"><a href="../">Cards</a> / about</p>
@@ -614,6 +624,7 @@ h1.with-icon{display:flex;align-items:center;gap:16px}
 .pillars li{background:var(--panel);border:1px solid var(--edge);border-top:3px solid var(--navy-mid);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
 .pillars strong{font-size:1.05rem}.pillars span{color:var(--muted);font-size:.95rem;line-height:1.5}
 .prose{max-width:70ch}
+.art{margin:28px 0}.art svg{display:block;width:100%;height:auto;max-width:820px;margin:0 auto}
 .crumbs{color:var(--muted);font-size:.9rem;margin:0}
 .meta{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
 .kind{font-weight:600}
