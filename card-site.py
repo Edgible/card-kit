@@ -58,7 +58,7 @@ DRIVER_WORDS = {
     "shut-down": "a service that shut down or got worse", "compliance": "compliance",
     "local": "it has to run at home",
 }
-RESERVED = {"needs", "style.css", "llms.txt", "sitemap.xml", "robots.txt", "404.html", "index.html"}
+RESERVED = {"about", "needs", "style.css", "llms.txt", "sitemap.xml", "robots.txt", "404.html", "index.html"}
 
 
 def esc(s: object) -> str:
@@ -179,7 +179,7 @@ class Site:
 <body>
 <header class="top"><div class="wrap">
 <a class="brand" href="{up}"><img src="{up}assets/images/edgible-logo-white.png" alt="Edgible" width="107" height="24"><span>Cards</span></a>
-<nav><a href="{up}#app-cards">Apps</a><a href="{up}#pattern-cards">Patterns</a><a href="{up}needs/">Needs</a><a class="star" href="{REPO_URL}" title="Star edgible-org/cards on GitHub, so others find it">&#9733; Star on GitHub</a></nav>
+<nav><a href="{up}about/">About</a><a href="{up}#app-cards">Apps</a><a href="{up}#pattern-cards">Patterns</a><a href="{up}needs/">Needs</a><a class="star" href="{REPO_URL}" title="Star edgible-org/cards on GitHub, so others find it">&#9733; Star on GitHub</a></nav>
 </div></header>
 <main class="wrap">
 {body}
@@ -244,8 +244,15 @@ class Site:
         patterns = [c for c in self.cards.values() if c["type"] != "app"]
         tested = sum(1 for c in self.cards if self.status.get(c, {}).get("result") == "pass")
         body = f"""<section class="hero">
-<h1>Self-hosted apps, tested on a real machine every week</h1>
-<p>Each card runs one self-hosted app, or wires several together, on a machine you control: at home, in the office, or a small cloud server. It records the images, ports, and who may reach each hostname, and leaves out anything that is yours, so you can run it as it is. Edgible publishes the apps, with hostnames, TLS, and sign-in.</p>
+<h1>Self-hosted setups you can copy, tested every week</h1>
+<p class="lead">A card is a working self-hosted setup in a form made to be shared: plain files that anyone can read, run on a machine they control, change, and share back. One app, or several wired together.</p>
+<ul class="pillars">
+<li><strong>Made to share</strong><span>Nothing personal is in it: no device names, hostnames or passwords. You fill in your own. It is plain files in git, so you can fork it and share your version back.</span></li>
+<li><strong>The whole setup</strong><span>The apps, images and ports, which machine runs what, and who gets in to each hostname: anyone, your organization's sign-in, or an API key. Edgible publishes them, with TLS.</span></li>
+<li><strong>The same steps every time</strong><span>Check, Start, Publish, Verify, Tear down. Learn one card and you know them all, and so does an AI agent.</span></li>
+<li><strong>Proof it works</strong><span>Tested end to end on a real Edgible serving device, with the latest result on every card.</span></li>
+</ul>
+<p>Not an app store: each card is someone's record of what worked for them. Run it as it is, or make it yours and <a href="{REPO_URL}/blob/main/CONTRIBUTING.md">share it back</a>. <a href="about/">Why cards &rarr;</a></p>
 <p class="stats">{len(apps)} app cards, {len(patterns)} pattern cards, {tested} passing their latest test, {len(self.needs)} needs mapped.</p>
 <p class="star-ask">Found one that helps? <a href="{REPO_URL}">Star edgible-org/cards on GitHub</a>, so other people find it too.</p>
 </section>
@@ -265,7 +272,7 @@ class Site:
 <p>The <a href="{SKILL_URL}">edgible-cards skill</a> teaches an AI agent, such as Claude Code, to go from a need to a running, published card, and to look after it.</p>
 """
         self.page("", "Edgible cards: self-hosted apps, tested every week",
-                  "Self-hosted apps you can run on a machine you control, each tested end to end on a real Edgible serving device.",
+                  "Self-hosted setups written down to be shared: run one on a machine you control, change it, and share it back. Each is tested end to end on a real Edgible serving device.",
                   body)
 
     def finder(self) -> str:
@@ -290,6 +297,25 @@ class Site:
 </div>
 <p class="find-count" aria-live="polite"></p>
 </form>"""
+
+    def about_page(self) -> None:
+        """/about/, from the cards repo's ABOUT.md, so the story is written in one place."""
+        f = self.root / "ABOUT.md"
+        if not f.exists():
+            return
+        text = f.read_text()
+        m = re.match(r"\A# ([^\n]*)\n", text)
+        title = m.group(1) if m else "About cards"
+        body = f"""<p class="crumbs"><a href="../">Cards</a> / about</p>
+<h1>{esc(title)}</h1>
+<article class="prose">
+{self.readme_html({"readme": text, "dir": self.root})}
+</article>
+<p><a href="../">Browse the cards &rarr;</a></p>
+"""
+        self.page("about/", "About Edgible cards: self-hosted setups made to share",
+                  "Why cards exist: a working self-hosted setup, written down without anything personal, so anyone can run it, change it, and share it back.",
+                  body)
 
     def leaving_list(self, up: str) -> str:
         """Hosted products people leave, each linked to the need that replaces it: the way
@@ -368,7 +394,7 @@ class Site:
             # A link to another card goes to its page here.
             if len(parts) == 1 and parts[0] in self.cards:
                 new = f"../{parts[0]}/" + (f"#{frag}" if frag else "")
-            elif rel == Path("."):
+            elif rel in (Path("."), Path("README.md")):
                 new = "../"
             else:
                 kind = "tree" if target.is_dir() else "blob"
@@ -489,6 +515,8 @@ class Site:
 
 > Self-hosted apps to run on a machine you control (at home, in the office, or a small cloud server), published through Edgible. Each card records the images, ports, and auth mode of each hostname, and is tested end to end on a real Edgible serving device.
 
+Why cards exist, and why they are shaped for sharing: {base}about/
+
 Each card page has how to start, publish, check, and remove the card. Each need page says whether self-hosting suits that need, which questions decide it, and how to publish it safely. The source of every card is {REPO_URL}. An AI agent can do the whole flow with the edgible-cards skill: {SKILL_URL}
 
 ## App cards
@@ -538,6 +566,7 @@ Each card page has how to start, publish, check, and remove the card. Each need 
         self.index()
         for c in self.cards.values():
             self.card_page(c)
+        self.about_page()
         self.needs_index()
         for n in self.needs:
             self.need_page(n)
@@ -577,6 +606,10 @@ h1.with-icon{display:flex;align-items:center;gap:16px}
 .hero h1{font-size:2.5rem;max-width:20ch}.hero p{max-width:65ch}
 .lead{font-size:1.2rem;color:var(--muted);max-width:65ch}
 .stats{font-weight:600}
+.pillars{list-style:none;padding:0;margin:24px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.pillars li{background:var(--panel);border:1px solid var(--edge);border-top:3px solid var(--navy-mid);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.pillars strong{font-size:1.05rem}.pillars span{color:var(--muted);font-size:.95rem;line-height:1.5}
+.prose{max-width:70ch}
 .crumbs{color:var(--muted);font-size:.9rem;margin:0}
 .meta{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
 .kind{font-weight:600}
