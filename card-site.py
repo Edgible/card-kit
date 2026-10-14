@@ -23,6 +23,7 @@ kit, unless --needs names another.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import re
@@ -173,7 +174,7 @@ class Site:
 <meta property="og:description" content="{esc(description)}">
 {og_url}<meta name="twitter:card" content="summary">
 <link rel="icon" type="image/png" href="{up}assets/images/favicon.png">
-<link rel="stylesheet" href="{up}style.css">
+<link rel="stylesheet" href="{up}style.css?v={STYLE_VERSION}">
 </head>
 <body>
 <header class="top"><div class="wrap">
@@ -668,6 +669,11 @@ f.addEventListener("submit", e => {
 f.addEventListener("input", () => apply(true)); f.addEventListener("change", () => apply(true));
 f.hidden = false; apply(false);
 })();"""
+
+# The stylesheet's address changes with its content, so a browser that cached the last
+# one fetches the new one at once: a page whose script relies on a new rule, such as
+# [hidden], would otherwise look broken until the cache runs out.
+STYLE_VERSION = hashlib.sha256(STYLE.encode()).hexdigest()[:8]
 
 
 def main(argv: list[str]) -> int:
