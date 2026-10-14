@@ -275,8 +275,9 @@ class Site:
         count = {cat: sum(1 for c in self.cards if cat in [n["category"] for n in self.needs_of.get(c, [])])
                  for cat in cats}
         options = "".join(f'<option value="{slug(cat)}">{esc(cat)} ({count[cat]})</option>' for cat in cats)
-        return f"""<form class="finder" role="search" hidden onsubmit="return false">
-<label class="find-q"><span class="sr-only">Search cards</span><input type="search" name="q" placeholder="Search: an app, a need, or a service you are leaving" autocomplete="off"></label>
+        return f"""<form class="finder" role="search" hidden>
+<div class="find-row"><label class="find-q"><span class="sr-only">Search cards</span><input type="search" name="q" placeholder="Search: an app, a need, or a service you are leaving" autocomplete="off"></label>
+<button type="submit">Search</button></div>
 <div class="find-opts">
 <label><span class="sr-only">Category</span><select name="cat"><option value="">All categories</option>{options}</select></label>
 <label><span class="sr-only">Type</span><select name="type"><option value="">Apps and patterns</option><option value="app">App cards</option><option value="pattern">Pattern cards</option></select></label>
@@ -609,7 +610,9 @@ dt{font-weight:600;margin-top:10px}dd{margin:2px 0 0 0}
 .finder input[type=search],.finder select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--edge);border-radius:8px;padding:8px 12px}
 .finder input[type=search]{width:100%;font-size:1.05rem}
 .finder input[type=search]:focus,.finder select:focus{outline:2px solid var(--navy-mid);outline-offset:1px}
-.find-q{display:block}
+.find-row{display:flex;gap:8px}.find-q{display:block;flex:1;min-width:0}
+.finder button{font:inherit;font-weight:600;color:#fff;background:var(--navy-mid);border:0;border-radius:8px;padding:8px 18px;cursor:pointer}
+.finder button:hover{background:var(--navy)}.finder button:focus-visible{outline:2px solid var(--link);outline-offset:2px}
 .find-opts{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin-top:10px}
 .find-opts label{min-width:0;max-width:100%}.find-opts select{max-width:100%}
 .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--edge);border-radius:999px;padding:4px 12px;font-size:.92rem;cursor:pointer;user-select:none}
@@ -656,6 +659,12 @@ function apply(push) {
 const u = new URLSearchParams(location.search);
 f.q.value = u.get("q") || ""; f.cat.value = u.get("cat") || ""; f.type.value = u.get("type") || "";
 for (const k of ["public", "arm", "small", "pass"]) f[k].checked = u.get(k) === "1";
+// Results update as you type; the button and Enter also take you to them, and close a phone's keyboard.
+f.addEventListener("submit", e => {
+  e.preventDefault(); apply(true); document.activeElement.blur();
+  const first = [...document.querySelectorAll("#app-cards, #pattern-cards, .no-match")].find(el => !el.hidden);
+  if (first) first.scrollIntoView({behavior: "smooth", block: "start"});
+});
 f.addEventListener("input", () => apply(true)); f.addEventListener("change", () => apply(true));
 f.hidden = false; apply(false);
 })();"""
