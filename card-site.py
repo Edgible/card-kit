@@ -62,7 +62,8 @@ DRIVER_WORDS = {
     "shut-down": "a service that shut down or got worse", "compliance": "compliance",
     "local": "it has to run at home",
 }
-RESERVED = {"about", "needs", "style.css", "llms.txt", "sitemap.xml", "robots.txt", "404.html", "index.html"}
+SITE_PAGES = {"ABOUT.md": "about", "AI.md": "ai"}
+RESERVED = {"about", "ai", "needs", "style.css", "llms.txt", "sitemap.xml", "robots.txt", "404.html", "index.html"}
 
 
 def esc(s: object) -> str:
@@ -184,7 +185,7 @@ class Site:
 <body>
 <header class="top"><div class="wrap">
 <a class="brand" href="{up}"><img src="{up}assets/images/edgible-logo-white.png" alt="Edgible" width="107" height="24"><span>Cards</span></a>
-<nav><a href="{up}about/">About</a><a href="{up}#app-cards">Apps</a><a href="{up}#pattern-cards">Patterns</a><a href="{up}needs/">Needs</a><a class="star" href="{REPO_URL}" title="Star edgible-org/cards on GitHub, so others find it">&#9733; Star on GitHub{self.stars}</a></nav>
+<nav><a href="{up}about/">About</a><a href="{up}ai/">With AI</a><a href="{up}#app-cards">Apps</a><a href="{up}#pattern-cards">Patterns</a><a href="{up}needs/">Needs</a><a class="star" href="{REPO_URL}" title="Star edgible-org/cards on GitHub, so others find it">&#9733; Star on GitHub{self.stars}</a></nav>
 </div></header>
 <main class="wrap">
 {body}
@@ -274,7 +275,7 @@ class Site:
 <p>What people want to self-host, whether it suits a machine of your own, and how to publish it safely. <a href="needs/">All {len(self.needs)} needs</a>.</p>
 {self.leaving_list("")}
 <h2>With an AI agent</h2>
-<p>The <a href="{SKILL_URL}">edgible-cards skill</a> teaches an AI agent, such as Claude Code, to go from a need to a running, published card, and to look after it.</p>
+<p>The <a href="{SKILL_URL}">edgible-cards skill</a> teaches an AI agent, such as Claude Code, to go from a need to a running, published card, to look after it, and to build and share a new card when none fits. <a href="ai/">Use cards with your AI &rarr;</a></p>
 """
         self.page("", "Edgible cards: self-hosted apps, tested every week",
                   "Self-hosted setups written down to be shared: run one on a machine you control, change it, and share it back. Each is tested end to end on a real Edgible serving device.",
@@ -305,7 +306,21 @@ class Site:
 
     def about_page(self) -> None:
         """/about/, from the cards repo's ABOUT.md, so the story is written in one place."""
-        f = self.root / "ABOUT.md"
+        self.md_page("ABOUT.md", "about", "About cards",
+                     "About Edgible cards: self-hosted setups made to share",
+                     "Why cards exist: a working self-hosted setup, written down without anything personal, "
+                     "so anyone can run it, change it, and share it back.")
+
+    def ai_page(self) -> None:
+        """/ai/, from the cards repo's AI.md: how to find, run, and make cards with an AI agent."""
+        self.md_page("AI.md", "ai", "Use cards with your AI",
+                     "Use Edgible cards with your AI agent",
+                     "Install the edgible-cards skill, describe what you need in your own words, and your AI "
+                     "agent finds a card, runs it on your machine, and builds and shares a new one when none fits.")
+
+    def md_page(self, source: str, path: str, fallback: str, title_tag: str, description: str) -> None:
+        """A page from a Markdown file at the root of the cards repo, such as ABOUT.md."""
+        f = self.root / source
         if not f.exists():
             return
         text = f.read_text()
@@ -320,17 +335,15 @@ class Site:
             return f'<figure class="art">{body}</figure>'
         text = re.sub(r"^!\[([^\]]*)\]\(([^)\s]+)\)\s*$", inline, text, flags=re.M)
         m = re.match(r"\A# ([^\n]*)\n", text)
-        title = m.group(1) if m else "About cards"
-        body = f"""<p class="crumbs"><a href="../">Cards</a> / about</p>
+        title = m.group(1) if m else fallback
+        body = f"""<p class="crumbs"><a href="../">Cards</a> / {path}</p>
 <h1>{esc(title)}</h1>
 <article class="prose">
 {self.readme_html({"readme": text, "dir": self.root})}
 </article>
 <p><a href="../">Browse the cards &rarr;</a></p>
 """
-        self.page("about/", "About Edgible cards: self-hosted setups made to share",
-                  "Why cards exist: a working self-hosted setup, written down without anything personal, so anyone can run it, change it, and share it back.",
-                  body)
+        self.page(f"{path}/", title_tag, description, body)
 
     def leaving_list(self, up: str) -> str:
         """Hosted products people leave, each linked to the need that replaces it: the way
@@ -415,6 +428,9 @@ class Site:
                 new = f"../{parts[0]}/" + (f"#{frag}" if frag else "")
             elif rel in (Path("."), Path("README.md")):
                 new = "../"
+            # The repo's own pages, such as ABOUT.md, have a page here.
+            elif rel.as_posix() in SITE_PAGES:
+                new = f"../{SITE_PAGES[rel.as_posix()]}/" + (f"#{frag}" if frag else "")
             else:
                 kind = "tree" if target.is_dir() else "blob"
                 new = f"{REPO_URL}/{kind}/main/{rel.as_posix()}" + (f"#{frag}" if frag else "")
@@ -535,6 +551,7 @@ class Site:
 > Self-hosted apps to run on a machine you control (at home, in the office, or a small cloud server), published through Edgible. Each card records the images, ports, and auth mode of each hostname, and is tested end to end on a real Edgible serving device.
 
 Why cards exist, and why they are shaped for sharing: {base}about/
+How to use cards with an AI agent, and the skill to install: {base}ai/
 
 Each card page has how to start, publish, check, and remove the card. Each need page says whether self-hosting suits that need, which questions decide it, and how to publish it safely. The source of every card is {REPO_URL}. An AI agent can do the whole flow with the edgible-cards skill: {SKILL_URL}
 
@@ -586,6 +603,7 @@ Each card page has how to start, publish, check, and remove the card. Each need 
         for c in self.cards.values():
             self.card_page(c)
         self.about_page()
+        self.ai_page()
         self.needs_index()
         for n in self.needs:
             self.need_page(n)
