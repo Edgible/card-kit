@@ -101,6 +101,28 @@ places:
 
 A service that mounts the Docker socket, runs privileged, or uses the host's network has full control of its machine. A runner usually needs the socket. That is allowed, but the README must say so in words, and `check-cards` fails a card whose README does not mention it. `check-env` notes it too.
 
+## Native cards
+
+Some apps need the machine itself, which Docker cannot give them. Ollama on a Mac is the first: Docker on macOS runs a Linux VM with no access to the Mac's GPU, so the models run several times slower there. Such an app gets a card of its own, beside the Docker one (`ollama-mac` beside `ollama`), not a variant inside one card, so each stays one tested path.
+
+A native place says which OS it runs on:
+
+```yaml
+places:
+  ollama:
+    native: macos
+    memory: 8 GB
+    disk: 2 GB
+    arch: [arm64]
+```
+
+In place of a Compose file, the card has two scripts, which run with `card.env` exported:
+
+- **`install.sh`** installs a pinned release (a `VERSION=` line), checked against its SHA-256, into the card's own directory, and starts it as a background service named by `SERVICE` in `card.env`. Running it again restarts it, and with a new `VERSION`, upgrades it.
+- **`uninstall.sh`** stops the service and removes it and the release. It deletes nothing outside the card's directory by path. Data the person pointed elsewhere, such as a models folder they already had, is never the card's to delete.
+
+The rules are stricter than for a Compose card, because the card changes the machine itself. Its README says what is installed where. Tear down leaves the machine as it was. The grow job never makes a native card, and `check-cards --untrusted` refuses one. `check-env` checks the machine instead of Docker: its OS and CPU, memory, disk, each app's port, and whether `SERVICE` is free or already this card's. `test-card` runs `install.sh` for Start and `uninstall.sh` for Tear down, under a service name of its own, so it never touches a copy the machine already runs. The regression sends the card to a runner of that OS: `macOS` for `native: macos`.
+
 ## Conventions
 
 `card.yml` stays short because the tools read the rest from names. `<APP>` is the app name in capitals, with `-` written `_`. `check-cards` checks the first four.

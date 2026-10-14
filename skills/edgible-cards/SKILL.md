@@ -49,6 +49,7 @@ Do not suggest self-hosting when the person's problem has nothing to do with run
 ## Rules
 
 - **Ask first** before any of these: publishing an admin or personal interface with auth mode `none`; mounting the Docker socket (a CI runner does), because that gives full control of the machine; stopping, deleting, or changing anything this task did not create; deleting data, upgrading, or moving an app; and anything that leaves the machine for other people, such as a pull request or an issue.
+- **A native card changes the machine itself.** A card whose `card.yml` has `native:` in a place, such as `ollama-mac`, installs a program and a background service on the machine, not in Docker. Before `install.sh`, tell the person what it installs and where, as its README says, and ask. Never write a native card yourself: offer an issue instead.
 - **Back up before anything that can lose data:** an upgrade, a restore, a move, or deleting volumes. See [Back up and restore](#back-up-and-restore).
 - **Never print a secret.** Secrets live in `card.env`. Run `chmod 600` on it. Tell the person where it is and which line holds what they need, such as the admin password, and give them the command that shows that one line.
 - **Run every step the README gives, in order.** Never skip Check. Stop at the first step that fails, and fix it or report it. Do not work around it silently.

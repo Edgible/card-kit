@@ -20,6 +20,10 @@ card.yml and the Compose files, the same way on every card:
 How (Fetch, Edit card.env, Check, Start, Publish), each app's Verify check by its auth
 mode, Tear down, and the sizing sentence in What, from places:. Fetch reads from
 edgible-org/cards.
+
+A native card (native: in places:) runs install.sh instead of a Compose file, so its How is
+Fetch, Edit card.env, Check, Install, Publish, and its Tear down is Unpublish, Uninstall,
+Remove the card. The README shows install.sh's VERSION, so a reader sees what is installed.
 """
 from __future__ import annotations
 
@@ -44,10 +48,117 @@ def sizing(card: dict) -> str:
     for place, p in (card.get("places") or {}).items():
         archs = [ARCH_WORDS[a] for a in ("arm64", "amd64", "arm") if a in p.get("arch", [])]
         arch = archs[0] if len(archs) == 1 else ", ".join(archs[:-1]) + " or " + archs[-1] if archs else "any"
+        if p.get("native") == "macos":
+            sentences.append(f"Minimum recommended for the place `{place}`: an Apple Silicon Mac with "
+                             f"{p.get('memory', '?')} of memory and {p.get('disk', '?')} of disk; it runs on the Mac's GPU.")
+            continue
         sentences.append(
             f"Minimum recommended for the place `{place}`: {p.get('memory', '?')} of memory and "
             f"{p.get('disk', '?')} of disk, on an {arch} machine, with {GPU_WORDS[p.get('gpu', 'none')]}.")
     return " ".join(sentences)
+
+
+def native_readme(name: str, card: dict, spec: dict, d: Path, lookup: str, creates: list[str],
+                  verify: list[str], docs: list[str]) -> str:
+    """The README of a card that installs its app on the machine itself, with install.sh."""
+    apps = card["applications"]
+    place = next(iter(card["places"].values()))
+    version = (re.search(r"^VERSION=[\"']?([^\"'\s]+)", (d / "install.sh").read_text(), re.M) or [None, "?"])[1]
+    os_word = {"macos": "macOS"}.get(place["native"], place["native"])
+    env_load = f"set -a\n. {name}/card.env\nset +a"
+    return f"""# {name}
+
+## Why
+
+{spec['why'].strip()}
+
+## What
+
+{spec['what'].strip()}
+
+{spec['data'].strip()} {sizing(card)}
+
+This card runs natively on {os_word}, not in Docker. [install.sh](install.sh) installs release {version}, checked against its SHA-256, into the card's own directory and starts it as a background service; [uninstall.sh](uninstall.sh) removes both. The settings are [card.env](card.env), the card [card.yml](card.yml){', and the last test [test.yml](test.yml)' if (d / 'test.yml').exists() else ''}.
+
+## How
+
+Five steps. Edit [card.env](card.env) before you start.
+
+### 1. Fetch
+
+{FENCE}bash
+mkdir -p {name}
+curl -fsSL https://github.com/edgible-org/cards/archive/refs/heads/main.tar.gz \\
+  | tar -xz --strip-components=2 -C {name} cards-main/{name}
+{FENCE}
+
+### 2. Edit card.env
+
+{spec['edit'].strip()}
+
+{FENCE}bash
+nano {name}/card.env
+{FENCE}
+
+### 3. Check
+
+{FENCE}bash
+curl -fsSLo check-env.py https://raw.githubusercontent.com/edgible-org/card-kit/main/check-env.py
+python3 check-env.py {name}
+{FENCE}
+
+It checks this machine, the port, and the service name, and prints any fix as lines to paste. Run it again until it says `no conflicts`.
+
+### 4. Install
+
+{FENCE}bash
+{env_load}
+sh {name}/install.sh
+{FENCE}
+
+{spec.get('start', '').strip()}
+
+### 5. Publish
+
+{FENCE}bash
+set -euo pipefail
+{env_load}
+{lookup}
+{chr(10).join(creates)}
+edgible app list
+{FENCE}
+
+## Verify
+
+{(chr(10) * 2).join(verify)}
+
+The rest of the setup is in the [{docs[0]} docs]({docs[1]}).
+
+## Tear down
+
+Three steps, in this order. Step 1 runs wherever `edgible` is logged in, steps 2 and 3 on the machine that runs the card.
+
+### 1. Unpublish
+
+{FENCE}bash
+{chr(10).join(f"edgible app delete {a['name']} --yes" for a in apps)}
+{FENCE}
+
+### 2. Uninstall
+
+{FENCE}bash
+{env_load}
+sh {name}/uninstall.sh
+{FENCE}
+
+It stops the service and removes it and the release. {spec.get('uninstall', '').strip()}
+
+### 3. Remove the card
+
+{FENCE}bash
+rm -rf {name}
+{FENCE}
+"""
 
 
 def main(argv: list[str]) -> int:
@@ -160,6 +271,11 @@ def main(argv: list[str]) -> int:
                            f"{run_files(files, 'ps')}\n{FENCE}")
     start_block = ("\n\n".join(on(pl) + up_ps(files_of[pl]) for pl in app_places if files_of[pl])
                    if multi else up_ps(composes))
+    if any(s.get("native") for s in declared.values()):
+        out = native_readme(name, card, spec, d, lookup, creates, verify, docs)
+        (d / "README.md").write_text(out)
+        print(f"wrote {d / 'README.md'}")
+        return 0
     out = f"""# {name}
 
 ## Why
