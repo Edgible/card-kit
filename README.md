@@ -382,6 +382,10 @@ For another agent, put the `edgible-cards` directory where that agent reads skil
 
 The skill links here for the format rather than copying it. A change to the format or a tool that changes what a person does goes into the skill in the same pull request.
 
+## MCP server
+
+[edgible-mcp](edgible-mcp/README.md) gives an MCP client three read-only tools: `find` searches the cards and the needs map for a need, `describe` shows one card, and `whats_running` lists the apps of your Edgible organization and checks that each hostname answers the way its auth mode says. Run it locally over stdio, or reach it from anywhere with the `edgible-mcp` card, which runs its image `ghcr.io/edgible-org/edgible-mcp`.
+
 ## License
 
 [MIT](LICENSE).
