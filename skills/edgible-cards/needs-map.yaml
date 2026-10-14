@@ -146,7 +146,7 @@
     default: none
     sensitive: n/a
   machine: n/a
-  cards: [website]
+  cards: [static-site, website]
   ask: ["does anything need a login or an editor?"]
 
 - category: Federated Identity & Authentication
