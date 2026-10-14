@@ -2,6 +2,8 @@
 
 The format of an Edgible card, and the tools that check and build one. [edgible-org/cards](https://github.com/edgible-org/cards) holds the cards people share, and runs these tools. The catalog site, [cards.edgible.org](https://cards.edgible.org), is built from it with [card-site](#card-site).
 
+If the cards help you, star [edgible-org/cards](https://github.com/edgible-org/cards) rather than this repo: it is where people find them, so it is where we count.
+
 ## What a card is
 
 A card records a deployment pattern so someone else can reproduce it: the programs, the images, the ports, the auth mode on each hostname, and which apps share a serving device. It leaves out device names, hostnames, the organization id, and passwords, so the next person maps each place to a serving device they have.

@@ -179,7 +179,7 @@ class Site:
 <body>
 <header class="top"><div class="wrap">
 <a class="brand" href="{up}"><img src="{up}assets/images/edgible-logo-white.png" alt="Edgible" width="107" height="24"><span>Cards</span></a>
-<nav><a href="{up}#app-cards">Apps</a><a href="{up}#pattern-cards">Patterns</a><a href="{up}needs/">Needs</a><a href="{REPO_URL}">GitHub</a></nav>
+<nav><a href="{up}#app-cards">Apps</a><a href="{up}#pattern-cards">Patterns</a><a href="{up}needs/">Needs</a><a class="star" href="{REPO_URL}" title="Star edgible-org/cards on GitHub, so others find it">&#9733; Star on GitHub</a></nav>
 </div></header>
 <main class="wrap">
 {body}
@@ -247,6 +247,7 @@ class Site:
 <h1>Self-hosted apps, tested on a real machine every week</h1>
 <p>Each card runs one self-hosted app, or wires several together, on a machine you control: at home, in the office, or a small cloud server. It records the images, ports, and who may reach each hostname, and leaves out anything that is yours, so you can run it as it is. Edgible publishes the apps, with hostnames, TLS, and sign-in.</p>
 <p class="stats">{len(apps)} app cards, {len(patterns)} pattern cards, {tested} passing their latest test, {len(self.needs)} needs mapped.</p>
+<p class="star-ask">Found one that helps? <a href="{REPO_URL}">Star edgible-org/cards on GitHub</a>, so other people find it too.</p>
 </section>
 {self.finder()}
 <h2 id="app-cards">App cards</h2>
@@ -566,7 +567,9 @@ a{color:var(--link)}
 .brand{display:flex;align-items:center;gap:12px;color:#fff;text-decoration:none;font-size:20px;font-weight:500;letter-spacing:.02em}
 .brand img{height:24px;width:auto;display:block}
 .brand span{border-left:1px solid rgba(255,255,255,.4);padding-left:12px}
-nav{display:flex;flex-wrap:wrap;gap:18px}nav a{text-decoration:none;color:rgba(255,255,255,.85)}nav a:hover{color:#fff}
+nav{display:flex;flex-wrap:wrap;gap:18px;align-items:center}nav a{text-decoration:none;color:rgba(255,255,255,.85)}nav a:hover{color:#fff}
+nav a.star{border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:1px 12px;color:#fff}nav a.star:hover{background:rgba(255,255,255,.12)}
+.star-ask{color:var(--muted)}
 main.wrap{padding-top:40px;padding-bottom:56px;flex:1;width:100%}
 h1,h2,h3{font-weight:600;letter-spacing:-.01em}
 h1{font-size:2.1rem;line-height:1.2;margin:.2em 0 .3em}h2{font-size:1.4rem;margin:2em 0 .5em}h3{font-size:1.1rem}
