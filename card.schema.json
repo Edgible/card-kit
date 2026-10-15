@@ -51,6 +51,31 @@
         "$ref": "#/$defs/application"
       }
     },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "volumes"
+      ],
+      "description": "Optional. What the card's volumes hold, how to copy them consistently, and how to tell the data is there. It comes before places:, which test-card --write-places rewrites. card.env is always data and needs no entry.",
+      "properties": {
+        "volumes": {
+          "type": "object",
+          "minProperties": 1,
+          "description": "One entry per named volume in the card's Compose files.",
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/volume"
+          }
+        },
+        "fingerprint": {
+          "$ref": "#/$defs/command",
+          "description": "Required when a volume is irreplaceable. Run in service, read-only and quick, it prints one line of JSON: counts (integers) and dates (ISO), never content, such as {\"bookmarks\": 412, \"latest\": \"2026-10-14\"}. An empty install prints zeros."
+        }
+      }
+    },
     "places": {
       "type": "object",
       "description": "Optional. For each place: the minimum recommended machine, and for a place no app uses, the Compose files it runs. Keys are place names.",
@@ -225,6 +250,71 @@
           "runs"
         ]
       }
+    },
+    "volume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class"
+      ],
+      "properties": {
+        "class": {
+          "enum": [
+            "irreplaceable",
+            "rebuildable",
+            "cache"
+          ],
+          "description": "irreplaceable: back it up and check it after a restore. rebuildable: the app recreates it from irreplaceable data, such as a search index. cache: safe to drop, such as thumbnails."
+        },
+        "dump": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "service",
+            "command",
+            "restore"
+          ],
+          "description": "A consistent copy without stopping the app. Without it, a consistent copy stops the app.",
+          "properties": {
+            "service": {
+              "$ref": "#/$defs/service"
+            },
+            "command": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Run in service, it writes the dump to stdout."
+            },
+            "restore": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Run in service, it reads the dump from stdin."
+            }
+          }
+        }
+      }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service",
+        "command"
+      ],
+      "properties": {
+        "service": {
+          "$ref": "#/$defs/service"
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Run with sh -c in service, with that container's environment."
+        }
+      }
+    },
+    "service": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "description": "A service in one of the card's Compose files."
     },
     "size": {
       "type": "string",

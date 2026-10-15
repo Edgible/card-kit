@@ -24,6 +24,8 @@ follows in the card's README:
               sign-in, api-key answers 401, tcp connects; udp is skipped
   checks      the card's test/<name>.sh, after Verify and after places with no app have
               started, each retried until it passes or --check-wait runs out
+  fingerprint data.fingerprint's command from card.yml, after the checks: one JSON line of
+              counts and ISO dates, recorded in test.yml as fingerprint:
   teardown    deletes the apps it published and removes the containers and volumes it
               started, and nothing else
 
@@ -52,6 +54,7 @@ import json
 import math
 import platform
 import re
+import shlex
 import shutil
 import socket
 import ssl
@@ -80,7 +83,7 @@ def sh(cmd: str, check: bool = True, timeout: int = 1800) -> subprocess.Complete
 
 def read_apps(card_yml: Path) -> list[dict]:
     """The applications in card.yml. It is flat enough to read without pyyaml."""
-    text = re.split(r"\nplaces:\s*\n", card_yml.read_text())[0]
+    text = re.split(r"\n(?:data|places):\s*\n", card_yml.read_text())[0]
     apps = []
     for block in re.split(r"\n\s*- name: ", text)[1:]:
         get = lambda k: (re.search(rf"\n\s+{k}:\s*(.+)", block) or [None, ""])[1].strip()
@@ -109,6 +112,58 @@ def read_places(card_yml: Path) -> dict[str, dict]:
             current[fm.group(1)] = [x.strip() for x in fm.group(2).strip("[]").split(",")] \
                 if fm.group(1) in ("arch", "runs") else fm.group(2)
     return places
+
+
+def read_fingerprint(card_yml: Path) -> tuple[str, str] | None:
+    """data.fingerprint's service and command, or None. The command is a plain or quoted
+    scalar on one line, or a | or > block below it."""
+    m = re.search(r"\ndata:\s*\n((?:[ \t]+.*\n?|\s*\n)+)", card_yml.read_text())
+    lines = (m.group(1) if m else "").splitlines()
+    start = next((i for i, l in enumerate(lines) if re.match(r"^  fingerprint:\s*$", l)), None)
+    if start is None:
+        return None
+    service, command, i = "", "", start + 1
+    while i < len(lines) and (lines[i].startswith("   ") or not lines[i].strip()):
+        fm = re.match(r"^    (service|command):\s*(.*?)\s*$", lines[i])
+        if fm and fm.group(1) == "service":
+            service = fm.group(2).strip("\"'")
+        elif fm and fm.group(2)[:1] in ("|", ">"):
+            block = []
+            while i + 1 < len(lines) and (lines[i + 1].startswith("      ") or not lines[i + 1].strip()):
+                i += 1
+                block.append(lines[i][6:])
+            command = ("\n" if fm.group(2)[0] == "|" else " ").join(block).strip()
+        elif fm:
+            value = fm.group(2)
+            if value[:1] == "'" and value[-1:] == "'":
+                value = value[1:-1].replace("''", "'")
+            elif value[:1] == '"' and value[-1:] == '"':
+                value = json.loads(value)
+            command = value
+        i += 1
+    return (service, command) if service and command else None
+
+
+FINGERPRINT_KEY = re.compile(r"^[a-z][a-z0-9_]*$")
+ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}([T ][0-9:.]+(Z|[+-]\d{2}:?\d{2})?)?$")
+
+
+def fingerprint_problem(out: str) -> tuple[dict | None, str]:
+    """The fingerprint's last line as a dict, and what breaks the contract, or ""."""
+    line = (out.strip().splitlines() or [""])[-1]
+    try:
+        value = json.loads(line)
+    except json.JSONDecodeError:
+        return None, "its last line is not JSON"
+    if not isinstance(value, dict) or not 1 <= len(value) <= 8:
+        return None, "it must print one JSON object of 1 to 8 keys"
+    for key, v in value.items():
+        if not FINGERPRINT_KEY.match(key):
+            return None, f"key {key!r} is not lower_case"
+        ok = v is None or (isinstance(v, int) and not isinstance(v, bool)) or (isinstance(v, str) and ISO_DATE.match(v))
+        if not ok:
+            return None, f"{key} is not a count or an ISO date; a fingerprint holds no content"
+    return value, ""
 
 
 def file_places(apps: list[dict], compose: Path, places: dict | None = None) -> list[str]:
@@ -439,6 +494,7 @@ def main(argv: list[str]) -> int:
         return s
     steps: dict = {"check-env": "fail", "start": "skip", "publish": "skip", "verify": {}, "teardown": "skip"}
     notes, published, started_compose, installed = [], [], False, False
+    fingerprint_spec, fingerprint = (None if native else read_fingerprint(card / "card.yml")), None
     sampler = NativeSampler(card) if native else Sampler(list(projects.values()))
     data: dict[Path, float] = {}
 
@@ -588,6 +644,23 @@ def main(argv: list[str]) -> int:
                     break
                 time.sleep(15)
             print(f"check {name}: {steps['checks'][name]} ({hide(out)})")
+
+        # The data's fingerprint, after the checks, which may have added data to count.
+        if fingerprint_spec:
+            service, command = fingerprint_spec
+            steps["fingerprint"] = "fail"
+            owner = next((f for f in composes
+                          if service in ((json.loads(sh(dc(f, "config --format json"), check=False).stdout or "{}")
+                                          .get("services") or {}))), None)
+            if not owner:
+                print(f"fingerprint: fail (no Compose file has service {service})")
+            else:
+                r = sh(dc(owner, f"exec -T {service} sh -c {shlex.quote(command)}"), check=False, timeout=120)
+                value, problem = fingerprint_problem(r.stdout) if r.returncode == 0 else (None, f"exit {r.returncode}")
+                if value is not None:
+                    steps["fingerprint"], fingerprint = "pass", value
+                print(f"fingerprint: {steps['fingerprint']} "
+                      f"({hide(json.dumps(value) if value is not None else problem + ': ' + (r.stdout + r.stderr).strip()[-200:])})")
     except Exception as exc:
         print(hide(f"stopped: {exc}"))
     finally:
@@ -639,7 +712,7 @@ def main(argv: list[str]) -> int:
         steps["verify"].setdefault(app["name"], "skip")
     core = [steps[k] for k in ("check-env", "start", "publish", "teardown")]
     result = ("pass" if all(c == "pass" for c in core) and "fail" not in steps["verify"].values()
-              and "fail" not in steps.get("checks", {}).values()
+              and "fail" not in steps.get("checks", {}).values() and steps.get("fingerprint") != "fail"
               and "pass" in steps["verify"].values() else "fail")
 
     docker_version = sh("docker version --format '{{.Server.Version}}'", check=False).stdout.strip()
@@ -656,8 +729,11 @@ def main(argv: list[str]) -> int:
         "steps:", f"  check-env: {steps['check-env']}", f"  start: {steps['start']}",
         f"  publish: {steps['publish']}", "  verify:", *[f"    {k}: {v}" for k, v in steps["verify"].items()],
         *(["  checks:", *[f"    {k}: {v}" for k, v in steps["checks"].items()]] if steps.get("checks") else []),
+        *([f"  fingerprint: {steps['fingerprint']}"] if steps.get("fingerprint") else []),
         f"  teardown: {steps['teardown']}",
     ]
+    if fingerprint is not None:
+        lines.append(f"fingerprint: {json.dumps(fingerprint)}")
     if started_compose or installed:
         lines.append("measured:")
         for place, m in per_place.items():

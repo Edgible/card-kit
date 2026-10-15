@@ -30,6 +30,12 @@ Docker, so it has install.sh and uninstall.sh next to card.yml and no Compose fi
 - uninstall.sh removes nothing outside the card's directory by path: no rm of an
   absolute path, ~ or $HOME.
 
+A card with Compose volumes says what they hold in data: (a note until every card has it):
+- one entry under data.volumes for each named volume in its Compose files, and no others;
+- a fingerprint when any volume is irreplaceable;
+- each dump and the fingerprint run in a service of its Compose files.
+A pattern card inherits data: from its app cards, so it gets no note.
+
 --before-test leaves out the test.yml rule, for a card about to be tested for the
 first time; test-card writes test.yml.
 
@@ -223,6 +229,35 @@ def app_errors(card_dir: Path, card: dict, composes: dict[str, str]) -> list[str
     return errors
 
 
+def data_problems(card: dict, composes: dict[str, str]) -> tuple[list[str], list[str]]:
+    """What is wrong with data:, and a note when a card with volumes has none yet."""
+    volumes, services = set(), set()
+    for text in composes.values():
+        compose = yaml.safe_load(text) or {}
+        volumes |= set(compose.get("volumes") or {})
+        services |= set(compose.get("services") or {})
+    data = card.get("data")
+    if not data:
+        if volumes and card["metadata"].get("type") != "pattern":
+            return [], [f"no data: section yet for its volumes ({', '.join(sorted(volumes))})"]
+        return [], []
+    errors = []
+    declared = data.get("volumes") or {}
+    for name in sorted(volumes - set(declared)):
+        errors.append(f"data.volumes has no entry for volume {name}")
+    for name in sorted(set(declared) - volumes):
+        errors.append(f"data.volumes names {name}, which is not a volume in the Compose files")
+    if any(v.get("class") == "irreplaceable" for v in declared.values()) and not data.get("fingerprint"):
+        errors.append("data has irreplaceable volumes but no fingerprint")
+    runs = [(f"data.volumes.{n}.dump", v["dump"]["service"]) for n, v in declared.items() if v.get("dump")]
+    if data.get("fingerprint"):
+        runs.append(("data.fingerprint", data["fingerprint"]["service"]))
+    for where, service in runs:
+        if service not in services:
+            errors.append(f"{where} runs in service {service}, which is not in the Compose files")
+    return errors, []
+
+
 RISKY = [
     (re.compile(r"/var/run/docker\.sock"), "mounts the Docker socket", ("docker socket",)),
     (re.compile(r"^\s*privileged:\s*true", re.M), "runs privileged", ("privileged",)),
@@ -340,6 +375,11 @@ def main(argv: list[str]) -> int:
                 )
             validator.validate(card)
             errors = convention_errors(path.parent, card) + test_errors(path.parent, card, test_validator)
+            data_errors, data_notes = data_problems(
+                card, {f.name: f.read_text() for f in sorted(path.parent.glob("*compose*.yml"))})
+            errors += data_errors
+            for note in data_notes:
+                print(f"note {path}: {note}")
             if before_test:
                 errors = [e for e in errors if e != NO_TEST]
             if untrusted and any(s.get("native") for s in (card.get("places") or {}).values()):

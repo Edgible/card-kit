@@ -95,7 +95,27 @@
             "$ref": "#/$defs/outcome"
           },
           "description": "Optional checks only this card knows how to make, run after Verify, such as a CI runner taking a job."
+        },
+        "fingerprint": {
+          "$ref": "#/$defs/outcome",
+          "description": "Whether data.fingerprint ran and printed counts and ISO dates only."
         }
+      }
+    },
+    "fingerprint": {
+      "type": "object",
+      "description": "What data.fingerprint printed at the end of the run.",
+      "minProperties": 1,
+      "maxProperties": 8,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": [
+          "integer",
+          "string",
+          "null"
+        ]
       }
     },
     "duration": {

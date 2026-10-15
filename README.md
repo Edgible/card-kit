@@ -81,6 +81,30 @@ Sizes are a number, a space, and `MB`, `GB`, or `TB`. Each field is optional, an
 
 The README's What section says the same numbers in words, so a reader who never opens `card.yml` sees them. An app card always has `places:`, from the sizes its test measured (see `measured:` under [Test results](#test-results)) plus a margin.
 
+## Data
+
+A card says what its volumes hold in a `data:` section, before `places:` (which `test-card --write-places` rewrites). Moves, backups, upgrades, and checks after a restore all read it.
+
+```yaml
+data:
+  volumes:
+    gitea-db-data:
+      class: irreplaceable
+      dump:                        # optional: a consistent copy without stopping the app
+        service: gitea-db
+        command: pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"       # writes to stdout
+        restore: pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean   # reads stdin
+    gitea-data:
+      class: irreplaceable
+  fingerprint:
+    service: gitea-db
+    command: psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select json_build_object('users', (select count(*) from \"user\"))"
+```
+
+Every named volume in the card's Compose files has an entry, with a class: `irreplaceable` (back it up, and check it after a restore), `rebuildable` (the app recreates it from irreplaceable data, such as a search index), or `cache` (safe to drop, such as thumbnails). Without a `dump`, a consistent copy stops the app. `card.env` is always data and needs no entry.
+
+A card with an irreplaceable volume has a **fingerprint**: one command, run with `sh -c` in `service`, that prints one line of JSON describing the data, such as `{"bookmarks": 412, "latest": "2026-10-14"}`. It holds counts (integers) and ISO dates only, never content, because it appears in test results and reports; one to eight lower_case keys, in the app's own words. It is read-only, takes seconds even on a large install, prints zeros on an empty one, and prints the same line for the same data on any machine. After a restore, the fingerprint must match the one taken with the backup. A pattern card inherits `data:` from its app cards and declares only what it adds.
+
 ## Places with no app
 
 Some services publish nothing: they only connect out. A CI runner asks a forge for jobs, a backup job sends copies away, a worker takes tasks from a queue. When one of them runs beside a published app, it is just another service in that app's Compose file, and it goes wherever that file goes. When it should run on a machine of its own, give it a place with no app, and say which Compose files it runs:
@@ -244,7 +268,7 @@ The YAML file must be inside the repo, because `run` mounts only the repo and th
 
 ### check-cards
 
-Checks each `card.yml` against [card.schema.json](card.schema.json), checks that `metadata.name` matches the directory name, and checks the first four conventions above. When a card has `test.yml`, it checks that too. With no arguments it checks every top-level `*/card.yml` in the current directory. Each failure says what to change. An app card must also follow the app rules in [What a card is](#what-a-card-is). The cards repo runs this on every pull request. `--untrusted` is for a card nobody has reviewed yet, such as one an agent just wrote, before it runs anywhere: it refuses anything that reaches outside the card (a host path, the Docker socket, privileged mode, the host's network or processes, devices, or extra capabilities). `--before-test` leaves out the rule that an app card has `test.yml`, for a new card about to be tested for the first time, since `test-card` writes that file; every other rule still applies.
+Checks each `card.yml` against [card.schema.json](card.schema.json), checks that `metadata.name` matches the directory name, and checks the first four conventions above. When a card has `test.yml`, it checks that too. It checks [`data:`](#data): an entry for every Compose volume and none for a volume that is not there, a fingerprint when a volume is irreplaceable, and dumps and fingerprints that run in a service of the card; a card with volumes and no `data:` yet gets a note, not a failure. With no arguments it checks every top-level `*/card.yml` in the current directory. Each failure says what to change. An app card must also follow the app rules in [What a card is](#what-a-card-is). The cards repo runs this on every pull request. `--untrusted` is for a card nobody has reviewed yet, such as one an agent just wrote, before it runs anywhere: it refuses anything that reaches outside the card (a host path, the Docker socket, privileged mode, the host's network or processes, devices, or extra capabilities). `--before-test` leaves out the rule that an app card has `test.yml`, for a new card about to be tested for the first time, since `test-card` writes that file; every other rule still applies.
 
 ```bash
 ../card-kit/run check-cards
@@ -333,7 +357,8 @@ It works on a copy of the card, through the same steps a person follows. Places 
 3. **Prepare:** the card's [`prepare.sh`](#prepare), when it has one. `$COMPOSE` is the test's compose command; `card.env` is exported. `--prepare COMMAND` runs a command in its place.
 4. **Publish:** each app in `card.yml`. A name already taken in the org is published as `test-<name>`, and the existing app is never touched.
 5. **Verify:** each hostname by its auth mode. `none` answers, `org` redirects to the Edgible sign-in, `api-key` answers `401`, and `tcp` connects. `udp` is skipped. It asks Edgible's own nameservers for the address, because resolvers keep a "does not exist" for 15 minutes when a new name is looked up too early.
-6. **Tear down:** deletes the apps it published, and removes the containers and volumes it started, and nothing else.
+6. **Fingerprint:** when `card.yml` has `data.fingerprint`, it runs it after the checks (which may have added data) and records `steps.fingerprint` and the line it printed as `fingerprint:` in `test.yml`. A line that is not one JSON object of counts and ISO dates fails the run.
+7. **Tear down:** deletes the apps it published, and removes the containers and volumes it started, and nothing else.
 
 While it runs, it measures each place: the peak memory of its containers together, its images, and its data at the end. It writes `test.yml` with `measured:`, unless nothing material (the result, a step, the images) changed since the last one. It prints a suggested `places:`: memory with half again as headroom, at least 256 MB; disk as images and data plus 1 GB; the architectures every image has. `--write-places` writes that into `card.yml`. Raise a number if the app documents a higher minimum.
 
