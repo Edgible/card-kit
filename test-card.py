@@ -715,6 +715,20 @@ def main(argv: list[str]) -> int:
               and "fail" not in steps.get("checks", {}).values() and steps.get("fingerprint") != "fail"
               and "pass" in steps["verify"].values() else "fail")
 
+    # The suggested places:, written into card.yml before test.yml, so test.yml's files:
+    # fingerprint is of the card.yml it leaves behind.
+    if started_compose or installed:
+        suggestion = {p: {**({"runs": places[p]["runs"]} if places.get(p, {}).get("runs") else {}),
+                          **({"native": native} if native else {}),
+                          **suggest(m["memory"], m["images"] + m["data"], m["archs"] or set(), args.gpu)}
+                      for p, m in per_place.items()}
+        print("\nsuggested " + places_yaml(suggestion), end="")
+        if args.write_places and result == "pass":
+            card_yml = src / "card.yml"
+            body = re.split(r"\nplaces:\s*\n", card_yml.read_text())[0].rstrip("\n")
+            card_yml.write_text(body + "\n\n" + places_yaml(suggestion))
+            print(f"Wrote places: into {card_yml}. Raise a number if the app documents a higher minimum.")
+
     docker_version = sh("docker version --format '{{.Server.Version}}'", check=False).stdout.strip()
     runtime = (f"{native} {platform.mac_ver()[0] or platform.release()}, native" if native
                else f"docker {docker_version}")
@@ -750,17 +764,6 @@ def main(argv: list[str]) -> int:
         target.write_text(new)
         print(f"\nresult: {result}. Wrote {target}.")
 
-    if started_compose or installed:
-        suggestion = {p: {**({"runs": places[p]["runs"]} if places.get(p, {}).get("runs") else {}),
-                          **({"native": native} if native else {}),
-                          **suggest(m["memory"], m["images"] + m["data"], m["archs"] or set(), args.gpu)}
-                      for p, m in per_place.items()}
-        print("\nsuggested " + places_yaml(suggestion), end="")
-        if args.write_places and result == "pass":
-            card_yml = src / "card.yml"
-            body = re.split(r"\nplaces:\s*\n", card_yml.read_text())[0].rstrip("\n")
-            card_yml.write_text(body + "\n\n" + places_yaml(suggestion))
-            print(f"Wrote places: into {card_yml}. Raise a number if the app documents a higher minimum.")
     if not args.keep:
         shutil.rmtree(work, ignore_errors=True)
     return 0 if result == "pass" else 1

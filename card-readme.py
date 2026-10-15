@@ -39,6 +39,12 @@ ARCH_WORDS = {"arm64": "arm64", "amd64": "amd64", "arm": "32-bit arm"}
 GPU_WORDS = {"none": "no GPU", "optional": "a GPU if you have one (it runs without)", "required": "a GPU"}
 
 
+WITHOUT_EDGIBLE = ("**Without Edgible:** only Publish is Edgible's. The app listens on `127.0.0.1` at the port "
+                   "in `card.env`, so any reverse proxy or tunnel on the machine, such as Caddy, nginx, Cloudflare "
+                   "Tunnel or Tailscale, can publish it instead, and sign-in is then that tool's to provide. "
+                   "Every other step stays the same.")
+
+
 def env_name(name: str) -> str:
     return name.upper().replace("-", "_")
 
@@ -127,6 +133,8 @@ set -euo pipefail
 {chr(10).join(creates)}
 edgible app list
 {FENCE}
+
+{WITHOUT_EDGIBLE}
 
 ## Verify
 
@@ -298,7 +306,7 @@ The Compose file is [{composes[0]}]({composes[0]}), the settings [card.env](card
 
 {FENCE}bash
 mkdir -p {name}
-curl -fsSL https://github.com/Edgible/{repo}/archive/refs/heads/main.tar.gz \\
+curl -fsSL https://github.com/edgible-org/{repo}/archive/refs/heads/main.tar.gz \\
   | tar -xz --strip-components=2 -C {name} {repo}-main/{name}
 {FENCE}{fetch_note}
 
@@ -336,6 +344,8 @@ set +a
 {chr(10).join(creates)}
 edgible app list
 {FENCE}
+
+{WITHOUT_EDGIBLE}
 {helper_steps}
 ## Verify
 
