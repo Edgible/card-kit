@@ -246,7 +246,7 @@ git clone https://github.com/edgible-org/card-kit ../card-kit
 
 ### card-readme
 
-Writes a card's `README.md`. The parts only a person knows come from a short YAML file; the rest comes from `card.yml` and the Compose files, the same way on every card: How (Fetch, Edit card.env, Check, Start with `prepare.sh` when the card has one, Publish), each app's Verify check by its auth mode, Tear down, and the sizing sentence in What, from `places:`.
+Writes a card's `README.md`. The parts only a person knows come from a short YAML file; the rest comes from `card.yml` and the Compose files, the same way on every card: How (Fetch, Edit card.env, Check, Start with `prepare.sh` when the card has one, Publish), each app's Verify check by its auth mode, Tear down, and the sizing sentence in What, from `places:`. After Publish it adds a "Without Edgible" note: only Publish is Edgible's, and any reverse proxy or tunnel can take its place.
 
 ```yaml
 why: The problem the card solves, with a link to the app.
